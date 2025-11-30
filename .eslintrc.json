@@ -1,0 +1,48 @@
+{
+  "env": {
+    "node": true,
+    "es2022": true,
+    "jest": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": ["warn", { 
+      "argsIgnorePattern": "^_",
+      "varsIgnorePattern": "^_" 
+    }],
+    "no-var": "error",
+    "prefer-const": "error",
+    "prefer-arrow-callback": "warn",
+    "arrow-body-style": ["warn", "as-needed"],
+    "no-throw-literal": "error",
+    "prefer-template": "warn",
+    "prefer-destructuring": ["warn", {
+      "array": false,
+      "object": true
+    }],
+    "object-shorthand": "warn",
+    "no-useless-return": "warn",
+    "require-await": "warn",
+    "no-return-await": "warn",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"],
+    "brace-style": ["error", "1tbs"],
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "quotes": ["error", "single", { "avoidEscape": true }],
+    "semi": ["error", "always"],
+    "comma-dangle": ["error", "never"],
+    "max-len": ["warn", { 
+      "code": 100,
+      "ignoreStrings": true,
+      "ignoreTemplateLiterals": true,
+      "ignoreComments": true
+    }]
+  }
+}

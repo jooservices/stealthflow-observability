@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # Observability API Server
+  # =============================================================================
+  observability-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: observability-api
+    ports:
+      - "3100:3000"  # Port 3100 (3000 is Grafana)
+    environment:
+      # Redis (Container #1)
+      REDIS_HOST: 192.168.1.13
+      REDIS_PORT: 6380
+      REDIS_DB: 0
+      
+      # Elasticsearch (Container #1)
+      ELASTICSEARCH_URL: http://192.168.1.13:9201
+      ELASTICSEARCH_TLS_VERIFY: 'false'
+      
+      # MongoDB (Container #1)
+      MONGODB_URI: mongodb://192.168.1.13:27018/observability
+      
+      # Logging config
+      LOG_STREAM_NAME: logs:stream
+      LOG_CONSUMER_GROUP: stealthflow-log-workers
+      LOG_BATCH_SIZE: 200
+      LOG_BLOCK_TIMEOUT_MS: 2000
+      LOG_INDEX_ALIAS: stealthflow_develop_logs
+      
+      # Fallback
+      FALLBACK_LOG_DIR: /var/log/observability/fallback
+      FALLBACK_RETENTION_DAYS: 7
+      
+      # Circuit breaker
+      CIRCUIT_BREAKER_THRESHOLD: 5
+      CIRCUIT_BREAKER_TIMEOUT: 60000
+      
+      # Server
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+    
+    volumes:
+      - ./logs:/var/log/observability
+    
+    networks:
+      - observability-net
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  
+  # =============================================================================
+  # Log Worker (Background Processor)
+  # =============================================================================
+  log-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-worker
+    command: node scripts/log-worker.mjs
+    environment:
+      # Redis (Container #1)
+      REDIS_HOST: 192.168.1.13
+      REDIS_PORT: 6380
+      
+      # Elasticsearch (Container #1)
+      ELASTICSEARCH_URL: http://192.168.1.13:9201
+      
+      # Stream config
+      LOG_STREAM_NAME: logs:stream
+      LOG_CONSUMER_GROUP: stealthflow-log-workers
+      LOG_BATCH_SIZE: 200
+      LOG_BLOCK_TIMEOUT_MS: 2000
+      LOG_INDEX_ALIAS: stealthflow_develop_logs
+      
+      # Circuit breaker
+      CIRCUIT_BREAKER_THRESHOLD: 5
+      CIRCUIT_BREAKER_TIMEOUT: 60000
+      
+      NODE_ENV: development
+    
+    volumes:
+      - ./logs:/var/log/observability
+    
+    networks:
+      - observability-net
+    
+    depends_on:
+      observability-api:
+        condition: service_healthy
+    
+    restart: unless-stopped
+
+networks:
+  observability-net:
+    driver: bridge
+    name: observability-network
