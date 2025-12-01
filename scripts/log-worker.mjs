@@ -87,7 +87,7 @@ async function processBatch() {
                 const logEntry = JSON.parse(data);
 
                 // Build bulk operation
-                bulkOps.push({ index: { _index: INDEX_ALIAS } );
+                bulkOps.push({ index: { _index: INDEX_ALIAS } });
                 bulkOps.push(logEntry);
 
                 messageIds.push(messageId);
@@ -107,7 +107,7 @@ async function processBatch() {
         }
 
         // Bulk index to Elasticsearch
-        const result = await es.bulk({ body: bulkOps );
+        const result = await es.bulk({ body: bulkOps });
 
         if (result.errors) {
             console.warn('[Worker] Some items failed to index');
@@ -146,9 +146,7 @@ async function sendToDLQ(redis, message, reason, errorData) {
             retryCount: 0
         };
 
-        await redis.xadd(DLQ_STREAM, '*', 'data',
-            data: JSON.stringify(dlqEntry)
-        );
+        await redis.xadd(DLQ_STREAM, '*', 'data', JSON.stringify(dlqEntry));
 
         console.log(`[Worker] Moved to DLQ: ${reason}`);
     } catch (error) {

@@ -30,7 +30,7 @@ try {
     console.log(`✅ Redis: ${pong} (${redisHost}:${redisPort})`);
 
     // Test stream operations
-    await redis.xAdd('test:stream', '*', { test: 'hello' });
+    await redis.xadd('test:stream', '*', 'test', 'hello');
     console.log('✅ Redis Stream write: OK');
 
     await redis.quit();
