@@ -40,12 +40,18 @@ Application → API Server → Redis Stream → LogWorker → Elasticsearch → 
 
 ### 3.2 Tech Stack
 
-- **Backend:** Node.js 20+ (Express.js)
+- **Backend:** Node.js 22 LTS (Express.js)
 - **Database/Cache:** Redis (Streams)
 - **Search Engine:** Elasticsearch 8.x
 - **Message Queue:** Redis Streams
 - **Monitoring:** Built-in health checks
 - **Containerization:** Docker & Docker Compose
+
+**Runtime prerequisites**
+- Node.js 22 LTS (npm 10+) if running locally
+- Redis 7.x (Streams enabled) reachable at the configured host/port
+- Elasticsearch 8.x cluster matching the client minor version
+- Docker with Compose v2 if running via containers
 
 ### 3.3 Infrastructure Setup
 
@@ -135,13 +141,13 @@ Complete log processing flow from submission to visualization:
 
 ## 4. Prerequisites
 
-- **Node.js** >= 20.0.0
-- **npm** >= 10.0.0
+- **Node.js** >= 22.0.0 (LTS)
+- **npm** >= 11.0.0
 - **Docker** & Docker Compose (for containerized deployment)
 - **Access to Infrastructure Services** (configure via environment variables):
-  - Redis (default port 6380) - Required
-  - Elasticsearch (default port 9201) - Required
-  - MongoDB (default port 27018) - Optional
+  - Redis >= 7.0 (default port 6380) - Required
+  - Elasticsearch >= 8.0 (default port 9201) - Required
+  - MongoDB >= 7.0 (default port 27018) - Optional
 
 ---
 
