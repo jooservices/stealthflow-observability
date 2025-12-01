@@ -3,16 +3,18 @@
 ## Prerequisites
 
 - Docker & Docker Compose installed
-- Access to server 192.168.1.13
-- Container #1 running (Redis, ES, MongoDB)
+- Access to your deployment server
+- Infrastructure services running (Redis, Elasticsearch, MongoDB)
+- Network access to infrastructure services
 
 ## Verify Infrastructure
 
 ```bash
-# Check Container #1 services are accessible
-nc -zv 192.168.1.13 6380   # Redis
-nc -zv 192.168.1.13 9201   # Elasticsearch
-nc -zv 192.168.1.13 27018  # MongoDB
+# Check infrastructure services are accessible
+# Replace with your actual hostnames/IPs
+nc -zv <your-redis-host> 6380   # Redis
+nc -zv <your-elasticsearch-host> 9201   # Elasticsearch
+nc -zv <your-mongodb-host> 27018  # MongoDB
 ```
 
 ## Deployment Steps
@@ -20,16 +22,16 @@ nc -zv 192.168.1.13 27018  # MongoDB
 ### 1. Prepare Server
 
 ```bash
-# SSH to server
-ssh user@192.168.1.13
+# SSH to your deployment server
+ssh user@<your-server>
 
 # Create project directory
 mkdir -p ~/stealthflow-observability
 cd ~/stealthflow-observability
 
 # Clone repository (or copy files)
-git clone <repository-url> .
-# Or: scp -r ./observability user@192.168.1.13:~/stealthflow-observability
+git clone git@github.com:jooservices/stealthflow.git .
+# Or: scp -r ./observability user@<your-server>:~/stealthflow-observability
 ```
 
 ### 2. Configure Environment
@@ -38,20 +40,23 @@ git clone <repository-url> .
 # Copy environment template
 cp .env.example .env
 
-# Edit if needed (already configured for 192.168.1.13)
+# Edit with your infrastructure endpoints
 nano .env
 ```
 
 **.env contents:**
 ```bash
-# Redis (Container #1)
-REDIS_URL=redis://192.168.1.13:6380
+# Redis (Infrastructure Service)
+REDIS_HOST=<your-redis-host>
+REDIS_PORT=6380
+# Or use URL format:
+# REDIS_URL=redis://<your-redis-host>:6380
 
-# Elasticsearch (Container #1)
-ELASTICSEARCH_URL=http://192.168.1.13:9201
+# Elasticsearch (Infrastructure Service)
+ELASTICSEARCH_URL=http://<your-elasticsearch-host>:9201
 
-# MongoDB (Container #1)
-MONGODB_URI=mongodb://192.168.1.13:27018/observability
+# MongoDB (Infrastructure Service - Optional)
+MONGODB_URI=mongodb://<your-mongodb-host>:27018/observability
 
 # Stream config
 LOG_STREAM_NAME=logs:stream
@@ -85,7 +90,9 @@ docker logs observability-api
 docker logs log-worker
 
 # Test health endpoint
-curl http://192.168.1.13:3100/health
+curl http://localhost:3100/health
+# Or if deployed remotely:
+curl http://<your-server>:3100/health
 
 # Expected response:
 # {
@@ -101,7 +108,7 @@ curl http://192.168.1.13:3100/health
 
 ```bash
 # Submit test log
-curl -X POST http://192.168.1.13:3100/api/v1/logs \
+curl -X POST http://localhost:3100/api/v1/logs \
   -H "Content-Type: application/json" \
   -d '{
     "category": "SYSTEM",
@@ -117,8 +124,8 @@ curl -X POST http://192.168.1.13:3100/api/v1/logs \
 ### 6. Verify in Kibana
 
 ```bash
-# Open browser
-open http://192.168.1.13:5602
+# Open browser (replace with your Kibana URL)
+open http://<your-kibana-host>:5602
 
 # In Kibana:
 # 1. Go to Discover
@@ -132,10 +139,10 @@ open http://192.168.1.13:5602
 
 ```bash
 # Basic health
-curl http://192.168.1.13:3100/health
+curl http://localhost:3100/health
 
 # Detailed diagnostics
-curl http://192.168.1.13:3100/health/detailed
+curl http://localhost:3100/health/detailed
 ```
 
 ### Metrics
@@ -154,16 +161,18 @@ curl http://192.168.1.13:3100/metrics
 
 ```bash
 # Should be low (< 1000)
+# Replace <your-redis-host> with your Redis hostname
 docker exec observability-api sh -c \
-  'redis-cli -h 192.168.1.13 -p 6380 XLEN logs:stream'
+  'redis-cli -h <your-redis-host> -p 6380 XLEN logs:stream'
 ```
 
 ### Check DLQ
 
 ```bash
 # Should be 0 or low
+# Replace <your-redis-host> with your Redis hostname
 docker exec observability-api sh -c \
-  'redis-cli -h 192.168.1.13 -p 6380 XLEN logs:failed'
+  'redis-cli -h <your-redis-host> -p 6380 XLEN logs:failed'
 ```
 
 ## Management
@@ -237,8 +246,9 @@ docker logs observability-api
 
 2. **Check stream depth**
    ```bash
+   # Replace <your-redis-host> with your Redis hostname
    docker exec observability-api sh -c \
-     'redis-cli -h 192.168.1.13 -p 6380 XLEN logs:stream'
+     'redis-cli -h <your-redis-host> -p 6380 XLEN logs:stream'
    ```
    - If high (> 10000): LogWorker not processing
    - If 0: Logs not reaching Redis
@@ -250,7 +260,8 @@ docker logs observability-api
 
 4. **Check Elasticsearch**
    ```bash
-   curl http://192.168.1.13:9201/_cluster/health
+   # Replace <your-elasticsearch-host> with your Elasticsearch hostname
+   curl http://<your-elasticsearch-host>:9201/_cluster/health
    ```
 
 ### High stream backlog
@@ -266,15 +277,18 @@ docker-compose -f docker-compose.observability.yml up -d --scale log-worker=2
 
 ### Connection errors
 
-1. **Verify Container #1 is running**
+1. **Verify infrastructure services are running**
    ```bash
+   # Check your infrastructure services
    docker ps | grep -E "redis|elasticsearch"
+   # Or check remote services
    ```
 
 2. **Test connectivity**
    ```bash
-   nc -zv 192.168.1.13 6380
-   nc -zv 192.168.1.13 9201
+   # Replace with your actual hostnames
+   nc -zv <your-redis-host> 6380
+   nc -zv <your-elasticsearch-host> 9201
    ```
 
 3. **Check Docker network**
@@ -349,7 +363,7 @@ services:
 ## Security Notes
 
 - No authentication (internal network only)
-- Ensure Container #1 ports not exposed to internet
+- Ensure infrastructure service ports (Redis, Elasticsearch) are not exposed to internet
 - Consider VPN if accessing remotely
 - Rotate .env credentials periodically
 
@@ -364,7 +378,9 @@ services:
 
 ## Support
 
-- Documentation: `/docs`
-- User Guide: `USER_GUIDE.md`
-- Code Standards: `/docs/code-standards.md`
-- Implementation: `/docs/final-implementation-guide.md`
+- [Documentation Index](../README.md)
+- [User Guide](user-guide.md)
+- [Client Integration](client-integration.md)
+- [API Reference](../api/reference.md)
+- [Monitoring](../operations/monitoring.md)
+- [Troubleshooting](../operations/troubleshooting.md)
