@@ -29,6 +29,7 @@ ENV_FILE=".env"
 API_KEY="${1:-}"
 NETWORK_NAME="observability-network"
 CONTAINER_PREFIX="stealthflow-"
+DOCKER_COMPOSE_CMD=""  # Will be set by detect_docker_compose()
 
 # Colors
 RED='\033[0;31m'
@@ -109,11 +110,32 @@ check_http_status() {
     fi
 }
 
+# Detect Docker Compose version
+detect_docker_compose() {
+    # Check for Docker Compose V2 (docker compose)
+    if docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        return 0
+    fi
+    
+    # Check for Docker Compose V1 (docker-compose)
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        return 0
+    fi
+    
+    # Neither found - set to V2 as fallback
+    DOCKER_COMPOSE_CMD="docker compose"
+}
+
+# Detect Docker Compose early
+detect_docker_compose
+
 # Detect deployment scenario
 log_header "Deployment Scenario Detection"
 
 log_test "Detecting deployment scenario..."
-container_count=$(docker-compose ps -q 2>/dev/null | wc -l | tr -d ' ')
+container_count=$(${DOCKER_COMPOSE_CMD} ps -q 2>/dev/null | wc -l | tr -d ' ')
 
 if [ "$container_count" -eq 0 ]; then
     DEPLOYMENT_SCENARIO="fresh"
@@ -342,20 +364,20 @@ fi
 log_header "2. Container Status"
 
 log_test "Checking Docker containers..."
-if docker-compose ps | grep -q "Up"; then
-    container_count=$(docker-compose ps | grep "Up" | wc -l)
+if ${DOCKER_COMPOSE_CMD} ps | grep -q "Up"; then
+    container_count=$(${DOCKER_COMPOSE_CMD} ps | grep "Up" | wc -l)
     if [ "$container_count" -ge 5 ]; then
         log_pass "All 5 containers are running"
     else
         log_fail "Expected 5+ containers, found: $container_count"
-        docker-compose ps
+        ${DOCKER_COMPOSE_CMD} ps
     fi
 else
     log_fail "No running Docker containers found"
 fi
 
 log_test "Checking container health..."
-if docker-compose ps | grep -q "healthy"; then
+if ${DOCKER_COMPOSE_CMD} ps | grep -q "healthy"; then
     log_pass "Containers are reporting healthy status"
 else
     log_warn "Containers may not be fully healthy yet"

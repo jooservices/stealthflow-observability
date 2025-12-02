@@ -21,6 +21,7 @@ set -euo pipefail
 COMPOSE_FILE="docker-compose.yml"
 ENV_FILE=".env"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DOCKER_COMPOSE_CMD=""  # Will be set by detect_docker_compose()
 
 # Colors
 RED='\033[0;31m'
@@ -49,7 +50,28 @@ log_warning() {
     echo -e "${YELLOW}⚠${NC} $1"
 }
 
+# Detect Docker Compose version
+detect_docker_compose() {
+    # Check for Docker Compose V2 (docker compose)
+    if docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        return 0
+    fi
+    
+    # Check for Docker Compose V1 (docker-compose)
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        return 0
+    fi
+    
+    # Neither found - set to V2 as fallback
+    DOCKER_COMPOSE_CMD="docker compose"
+}
+
 cd "${PROJECT_ROOT}"
+
+# Detect Docker Compose
+detect_docker_compose
 
 log_header "StealthFlow Observability - Cleanup"
 
@@ -58,7 +80,7 @@ echo ""
 
 # Step 1: Stop Containers
 log_info "Stopping containers..."
-docker-compose -f "${COMPOSE_FILE}" down 2>/dev/null || true
+${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" down 2>/dev/null || true
 log_success "Containers stopped."
 
 # Step 2: Remove Volumes
@@ -67,7 +89,7 @@ echo -e "${YELLOW}Do you want to remove persistent data volumes? (Redis, ES, Mon
 read -p "Type 'yes' to remove volumes [no]: " remove_volumes
 if [[ "${remove_volumes}" == "yes" ]]; then
     log_info "Removing volumes..."
-    docker-compose -f "${COMPOSE_FILE}" down -v 2>/dev/null || true
+    ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" down -v 2>/dev/null || true
     log_success "Volumes removed."
 else
     log_info "Skipping volume removal."
@@ -79,7 +101,7 @@ echo -e "${YELLOW}Do you want to remove Docker images built for this project?${N
 read -p "Type 'yes' to remove images [no]: " remove_images
 if [[ "${remove_images}" == "yes" ]]; then
     log_info "Removing images..."
-    docker-compose -f "${COMPOSE_FILE}" down --rmi all 2>/dev/null || true
+    ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" down --rmi all 2>/dev/null || true
     log_success "Images removed."
 else
     log_info "Skipping image removal."

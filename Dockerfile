@@ -1,15 +1,18 @@
 FROM node:22-alpine
 
 # Install utilities for health checks
-RUN apk add --no-cache curl netcat-openbsd
+# Update package cache and install with retry logic to handle CDN issues
+RUN apk update && \
+    apk add --no-cache curl netcat-openbsd || \
+    (sleep 5 && apk update && apk add --no-cache curl netcat-openbsd)
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (use npm install for compatibility when lock file is missing)
+RUN npm install --only=production
 
 # Copy source code
 COPY . .

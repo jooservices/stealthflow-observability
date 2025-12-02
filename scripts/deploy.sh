@@ -31,6 +31,7 @@ ENV_EXAMPLE=".env.example"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 API_PORT="${API_PORT:-3100}"
 KIBANA_PORT="${KIBANA_PORT:-5601}"
+DOCKER_COMPOSE_CMD=""  # Will be set by detect_docker_compose()
 
 # Logging functions
 log_info() {
@@ -77,15 +78,28 @@ check_docker() {
     log_success "Docker is available"
 }
 
-check_docker_compose() {
-    log_info "Checking docker-compose availability..."
+detect_docker_compose() {
+    log_info "Detecting Docker Compose version..."
     
-    if ! command -v docker-compose &> /dev/null; then
-        log_error "docker-compose is not installed. Please install docker-compose first."
-        exit 1
+    # Check for Docker Compose V2 (docker compose)
+    if docker compose version &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker compose"
+        log_success "Docker Compose V2 detected (docker compose)"
+        return 0
     fi
     
-    log_success "docker-compose is available"
+    # Check for Docker Compose V1 (docker-compose)
+    if command -v docker-compose &> /dev/null; then
+        DOCKER_COMPOSE_CMD="docker-compose"
+        log_success "Docker Compose V1 detected (docker-compose)"
+        return 0
+    fi
+    
+    # Neither found
+    log_error "Docker Compose is not available. Please install either:"
+    log_error "  - Docker Compose V2 (included with Docker Desktop)"
+    log_error "  - Docker Compose V1 (legacy standalone binary)"
+    exit 1
 }
 
 check_port_available() {
@@ -233,11 +247,11 @@ check_existing_containers() {
     log_info "Checking for existing containers..."
     
     # Check if any containers exist (running or stopped)
-    existing_containers=$(docker-compose -f "${COMPOSE_FILE}" ps -a -q 2>/dev/null | wc -l | tr -d ' ')
+    existing_containers=$(${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps -a -q 2>/dev/null | wc -l | tr -d ' ')
     
     if [ "${existing_containers}" -gt 0 ]; then
         log_warning "Found ${existing_containers} existing container(s) from this project."
-        docker-compose -f "${COMPOSE_FILE}" ps
+        ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps
         
         echo ""
         echo -e "${YELLOW}Existing deployment detected. How would you like to proceed?${NC}"
@@ -251,12 +265,12 @@ check_existing_containers() {
         case "${cleanup_choice}" in
             1)
                 log_info "Performing full cleanup..."
-                docker-compose -f "${COMPOSE_FILE}" down -v --rmi all 2>/dev/null || true
+                ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" down -v --rmi all 2>/dev/null || true
                 log_success "Cleanup completed. Proceeding with fresh deployment..."
                 ;;
             2)
                 log_info "Restarting containers..."
-                docker-compose -f "${COMPOSE_FILE}" restart
+                ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" restart
                 log_success "Containers restarted"
                 wait_for_health
                 display_summary
@@ -269,7 +283,7 @@ check_existing_containers() {
             *)
                 log_warning "Invalid choice. Defaulting to Clean & Redeploy (Option 1)."
                 log_info "Performing full cleanup..."
-                docker-compose -f "${COMPOSE_FILE}" down -v --rmi all 2>/dev/null || true
+                ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" down -v --rmi all 2>/dev/null || true
                 ;;
         esac
     else
@@ -280,7 +294,7 @@ check_existing_containers() {
 build_docker_images() {
     log_info "Building Docker images..."
     
-    if ! docker-compose -f "${COMPOSE_FILE}" build; then
+    if ! ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" build; then
         log_error "Failed to build Docker images"
         exit 1
     fi
@@ -292,7 +306,7 @@ start_containers() {
     log_info "Starting Docker containers..."
     
     # Start containers
-    if ! docker-compose -f "${COMPOSE_FILE}" up -d; then
+    if ! ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" up -d; then
         log_error "Failed to start containers"
         exit 1
     fi
@@ -308,7 +322,7 @@ wait_for_health() {
     
     while [ $attempt -lt $max_attempts ]; do
         # Check if all services are healthy (now 6 services including Kibana)
-        if docker-compose -f "${COMPOSE_FILE}" ps | grep -E "(healthy|Up)" | wc -l | grep -q "6"; then
+        if ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps | grep -E "(healthy|Up)" | wc -l | grep -q "6"; then
             # Check if API is responding
             if curl -s -f -m 5 "http://localhost:${API_PORT}/health" > /dev/null 2>&1; then
                 echo ""
@@ -325,9 +339,9 @@ wait_for_health() {
     echo ""
     log_error "Services did not become healthy within expected time"
     log_info "Container status:"
-    docker-compose -f "${COMPOSE_FILE}" ps
+    ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps
     log_info "Recent logs:"
-    docker-compose -f "${COMPOSE_FILE}" logs --tail=50
+    ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" logs --tail=50
     exit 1
 }
 
@@ -335,7 +349,7 @@ verify_deployment() {
     log_info "Verifying deployment..."
     
     # Check container status
-    running_count=$(docker-compose -f "${COMPOSE_FILE}" ps | grep -c "Up" || true)
+    running_count=$(${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps | grep -c "Up" || true)
     if [ "$running_count" -lt 6 ]; then
         log_error "Not all containers are running (expected 6, found $running_count)"
         return 1
@@ -401,7 +415,7 @@ display_summary() {
     
     # Container status
     echo -e "${BLUE}Container Status:${NC}"
-    docker-compose -f "${COMPOSE_FILE}" ps
+    ${DOCKER_COMPOSE_CMD} -f "${COMPOSE_FILE}" ps
     echo ""
     
     # API Keys
@@ -483,7 +497,7 @@ main() {
     # Pre-flight checks
     log_header "Step 1: Pre-flight Checks"
     check_docker
-    check_docker_compose
+    detect_docker_compose
     check_ports
     check_disk_space
     
