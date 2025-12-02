@@ -92,7 +92,7 @@ StealthFlow Observability is a microservice designed to collect, buffer, and sto
 
 ### 3. LogWorker
 
-**Location:** `scripts/log-worker.mjs`
+**Location:** `src/workers/log-worker.js`
 
 **Responsibilities:**
 - Consumes logs from Redis Stream

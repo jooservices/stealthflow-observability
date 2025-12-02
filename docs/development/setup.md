@@ -129,10 +129,10 @@ src/
 └── shared/                # Shared utilities
 
 scripts/
-├── log-worker.mjs         # Background worker
-├── test-connections.js    # Connection test
-├── deploy.sh              # Deployment script
-└── quick-start.sh         # Quick setup
+├── deploy.sh              # Automated deployment script
+├── test.sh                 # Comprehensive E2E test suite
+├── demo.sh                 # Demo script (floods test data)
+└── cleanup.sh              # Cleanup script (stop/remove containers)
 
 client/
 └── observability.js       # Client library
