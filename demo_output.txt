@@ -1,0 +1,131 @@
+[0;34mℹ[0m Extracting API key from .env...
+[0;32m✓[0m Using API Key: d5fc0af538...
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  Step 1: Verifying Deployment[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34mℹ[0m Running test suite...
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  Deployment Scenario Detection[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Detecting deployment scenario...[0m
+[0;34m[INFO] Scenario: INCREMENTAL DEPLOYMENT (existing containers: 6)[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  1. Docker Isolation Verification[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Checking dedicated network exists...[0m
+[0;32m[PASS] Network 'observability-network' exists[0m
+[0;34m[TEST] Verifying network is not shared with other projects...[0m
+[0;32m[PASS] All containers on network are part of this project[0m
+[0;34m[TEST] Verifying network isolation (bridge driver)...[0m
+[0;32m[PASS] Network uses bridge driver (isolated)[0m
+[0;34m[TEST] Checking all containers have unique prefix...[0m
+[0;32m[PASS] Container 'stealthflow-redis' has correct unique name[0m
+[0;32m[PASS] Container 'stealthflow-elasticsearch' has correct unique name[0m
+[0;32m[PASS] Container 'stealthflow-mongodb' has correct unique name[0m
+[0;32m[PASS] Container 'stealthflow-kibana' has correct unique name[0m
+[0;32m[PASS] Container 'observability-api' has correct unique name[0m
+[0;32m[PASS] Container 'log-worker' has correct unique name[0m
+[0;34m[TEST] Verifying no name conflicts with other containers...[0m
+[0;32m[PASS] No container name conflicts detected[0m
+[0;34m[TEST] Checking volumes have unique names...[0m
+[0;32m[PASS] Volume 'stealthflow-redis-data' has correct unique name[0m
+[0;32m[PASS] Volume 'stealthflow-elasticsearch-data' has correct unique name[0m
+[0;32m[PASS] Volume 'stealthflow-mongodb-data' has correct unique name[0m
+[0;34m[TEST] Verifying no volume name conflicts...[0m
+[0;32m[PASS] No volume name conflicts detected[0m
+[0;34m[TEST] Verifying infrastructure ports are NOT exposed externally...[0m
+[0;32m[PASS] Redis port NOT exposed (internal only - complete isolation)[0m
+[0;32m[PASS] Elasticsearch port NOT exposed (internal only - complete isolation)[0m
+[0;32m[PASS] MongoDB port NOT exposed (internal only - complete isolation)[0m
+[0;31m[FAIL] Kibana port is exposed: 0.0.0.0:5601
+[::]:5601 (should NOT be exposed for isolation)[0m
+[0;32m[PASS] API port exposed correctly on 3100 (only public interface)[0m
+[0;34m[TEST] Verifying services can communicate internally...[0m
+[0;32m[PASS] API can reach Redis via internal network[0m
+[0;32m[PASS] API can reach Elasticsearch via internal network[0m
+[0;32m[PASS] API can reach MongoDB via internal network[0m
+[0;34m[TEST] Verifying services are NOT accessible from other Docker containers...[0m
+[0;32m[PASS] External container CANNOT reach our Redis (properly isolated)[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  2. Container Status[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Checking Docker containers...[0m
+[0;32m[PASS] All 5 containers are running[0m
+[0;34m[TEST] Checking container health...[0m
+[0;32m[PASS] Containers are reporting healthy status[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  3. Health & Metrics[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Testing health endpoint...[0m
+[0;32m[PASS] Health endpoint is accessible[0m
+[0;34m[TEST] Testing metrics endpoint...[0m
+[0;32m[PASS] Metrics endpoint is accessible[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  4. Authentication Security[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Testing access without API key (should fail)...[0m
+Expected: 401, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Should have rejected request without key[0m
+[0;34m[TEST] Testing access with invalid API key (should fail)...[0m
+Expected: 401, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Should have rejected request with invalid key[0m
+[0;34m[TEST] Testing access with valid API key (should succeed)...[0m
+Expected: 202, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Failed to authenticate with valid key[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  5. Functional Tests[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Submitting single log...[0m
+Expected: 202, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Single log submission failed[0m
+[0;34m[TEST] Submitting batch logs...[0m
+Expected: 202, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Batch log submission failed[0m
+[0;34m[TEST] Testing invalid payload (should fail)...[0m
+Expected: 400, Got: 429
+Response: {"error":"Too many requests","retryAfterSeconds":22}
+[0;31m[FAIL] Should have rejected invalid payload[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  6. Rate Limiting Stress Test[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34m[TEST] Testing rate limit enforcement (sending 105 requests)...[0m
+
+[0;32m[PASS] Rate limiting correctly triggered (HTTP 429)[0m
+
+[0;34m═══════════════════════════════════════════════════════════════[0m
+[0;34m  Test Summary[0m
+[0;34m═══════════════════════════════════════════════════════════════[0m
+
+[0;34mDeployment Scenario:[0m incremental
+
+[0;32mPassed:[0m   27
+[0;31mFailed:[0m   7
+[1;33mWarnings:[0m 0
+
+[0;31m════════════════════════════════════════════════════════[0m
+[0;31m  ❌ SOME TESTS FAILED[0m
+[0;31m════════════════════════════════════════════════════════[0m
+
+Please review the failures above and fix the issues.
+[0;31m✗[0m System verification failed. Please check logs.

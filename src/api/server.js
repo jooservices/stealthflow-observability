@@ -1,24 +1,40 @@
 import express from 'express';
 import logsRouter from './routes/logs.js';
 import healthRouter from './routes/health.js';
+import metricsRouter from './routes/metrics.js';
 import { getRedisClient } from '../infrastructure/logging/redisClient.js';
 import { getElasticsearchClient } from '../infrastructure/logging/esClient.js';
+import { apiRateLimiter, batchRateLimiter } from './middleware/rateLimit.js';
+import { apiKeyAuth } from './middleware/auth.js';
+import { recordApiRequest } from './middleware/metrics.js';
 
 const app = express();
 
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 
-// Request logging
+// Request logging and metrics
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
+    const startTime = Date.now();
     console.log(`[${timestamp}] ${req.method} ${req.path}`);
+
+    // Record metrics on response finish
+    res.on('finish', () => {
+        const duration = (Date.now() - startTime) / 1000; // Convert to seconds
+        recordApiRequest(req.method, req.path, res.statusCode, duration);
+    });
+
     next();
 });
 
 // Routes
-app.use('/api/v1/logs', logsRouter);
+// Apply rate limiting and auth to API routes
+// Use tighter limiter for batch submissions
+app.use('/api/v1/logs/batch', batchRateLimiter);
+app.use('/api/v1/logs', apiRateLimiter, apiKeyAuth, logsRouter);
 app.use('/health', healthRouter);
+app.use('/metrics', metricsRouter); // Prometheus metrics (no auth required)
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -29,6 +45,7 @@ app.get('/', (req, res) => {
         endpoints: {
             health: '/health',
             healthDetailed: '/health/detailed',
+            metrics: '/metrics',
             submitLog: 'POST /api/v1/logs',
             submitBatch: 'POST /api/v1/logs/batch'
         }
@@ -67,6 +84,8 @@ async function initialize() {
         const health = await es.cluster.health();
         console.log(`[Server] ✓ Elasticsearch connected (${health.status})`);
 
+
+
         console.log('[Server] All connections initialized');
     } catch (error) {
         console.error('[Server] Initialization error:', error);
@@ -85,6 +104,7 @@ initialize().then(() => {
         console.log('='.repeat(60));
         console.log(`  Server:      http://${HOST}:${PORT}`);
         console.log(`  Health:      http://${HOST}:${PORT}/health`);
+        console.log(`  Metrics:     http://${HOST}:${PORT}/metrics`);
         console.log(`  Environment: ${process.env.NODE_ENV || 'development'}`);
         console.log('='.repeat(60));
     });
@@ -103,6 +123,7 @@ async function gracefulShutdown() {
 
     await closeRedisClient();
     await closeElasticsearchClient();
+
 
     console.log('[Server] Shutdown complete');
     process.exit(0);

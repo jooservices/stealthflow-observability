@@ -57,7 +57,7 @@ Common issues and solutions for StealthFlow Observability Microservice.
    ```bash
    npm run worker
    # Or
-   docker-compose -f docker-compose.observability.yml up -d log-worker
+   docker-compose -f docker-compose.yml up -d log-worker
    ```
 
 2. **Check Elasticsearch connection**
@@ -66,7 +66,7 @@ Common issues and solutions for StealthFlow Observability Microservice.
 
 3. **Restart LogWorker**
    ```bash
-   docker-compose -f docker-compose.observability.yml restart log-worker
+   docker-compose -f docker-compose.yml restart log-worker
    ```
 
 ---
@@ -88,11 +88,11 @@ redis-cli -h 192.168.1.13 -p 6380 XLEN logs:stream
 
 1. **Scale LogWorker**
    ```bash
-   docker-compose -f docker-compose.observability.yml up -d --scale log-worker=2
+   docker-compose -f docker-compose.yml up -d --scale log-worker=2
    ```
 
 2. **Increase batch size**
-   Edit `docker-compose.observability.yml`:
+   Edit `docker-compose.yml`:
    ```yaml
    environment:
      LOG_BATCH_SIZE: 500  # Default: 200
@@ -151,7 +151,7 @@ redis-cli -h 192.168.1.13 -p 6380 XLEN logs:stream
 
 3. **Restart services**
    ```bash
-   docker-compose -f docker-compose.observability.yml restart
+   docker-compose -f docker-compose.yml restart
    ```
 
 ---
@@ -192,7 +192,7 @@ Check which connection failed:
 
 4. **Restart API service**
    ```bash
-   docker-compose -f docker-compose.observability.yml restart observability-api
+   docker-compose -f docker-compose.yml restart observability-api
    ```
 
 ---
@@ -274,7 +274,7 @@ redis-cli -h 192.168.1.13 -p 6380 XREAD COUNT 10 STREAMS logs:failed 0
 
 4. **Restart API service**
    ```bash
-   docker-compose -f docker-compose.observability.yml restart observability-api
+   docker-compose -f docker-compose.yml restart observability-api
    ```
 
 ---
@@ -308,7 +308,7 @@ redis-cli -h 192.168.1.13 -p 6380 XREAD COUNT 10 STREAMS logs:failed 0
 
 4. **Or stop existing container**
    ```bash
-   docker-compose -f docker-compose.observability.yml down
+   docker-compose -f docker-compose.yml down
    ```
 
 ---

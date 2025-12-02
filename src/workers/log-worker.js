@@ -4,8 +4,11 @@
  * Log Worker - Processes logs from Redis Stream to Elasticsearch
  */
 
-import { getRedisClient } from '../src/infrastructure/logging/redisClient.js';
-import { getElasticsearchClient } from '../src/infrastructure/logging/esClient.js';
+import { getRedisClient } from '../infrastructure/logging/redisClient.js';
+import { getElasticsearchClient } from '../infrastructure/logging/esClient.js';
+import { connectMongoDB, closeMongoDB } from '../infrastructure/db/mongoClient.js';
+import { BusinessLog } from '../infrastructure/db/schemas/BusinessLog.js';
+import { getDestinations, getStorageProfileForLog } from '../config/routing.js';
 
 const STREAM_NAME = process.env.LOG_STREAM_NAME || 'logs:stream';
 const CONSUMER_GROUP = process.env.LOG_CONSUMER_GROUP || 'stealthflow-log-workers';
@@ -47,6 +50,9 @@ async function initializeConsumerGroup() {
             throw error;
         }
     }
+
+    // Connect to MongoDB
+    await connectMongoDB();
 }
 
 /**
@@ -86,9 +92,36 @@ async function processBatch() {
                 const data = fields[1]; // fields = ['data', '{"..."}']
                 const logEntry = JSON.parse(data);
 
-                // Build bulk operation
-                bulkOps.push({ index: { _index: INDEX_ALIAS } });
-                bulkOps.push(logEntry);
+                // Get storage profile (new routing system)
+                const profile = getStorageProfileForLog(logEntry);
+                
+                if (!profile) {
+                    console.warn(`[Worker] No profile found for log, using fallback`);
+                    // Fallback: send to ES with default index
+                    bulkOps.push({ index: { _index: INDEX_ALIAS } });
+                    bulkOps.push(logEntry);
+                    messageIds.push(messageId);
+                    continue;
+                }
+
+                const destinations = profile.destinations;
+
+                // 1. Elasticsearch Buffer
+                if (destinations.includes('elasticsearch')) {
+                    // Use profile-specific index prefix if available
+                    const indexName = profile.indexPrefix 
+                        ? `${profile.indexPrefix}-${getDateSuffix()}`
+                        : INDEX_ALIAS;
+                    
+                    bulkOps.push({ index: { _index: indexName } });
+                    bulkOps.push(logEntry);
+                }
+
+                // 2. MongoDB Direct Write
+                if (destinations.includes('mongodb')) {
+                    const collectionName = profile.collection || 'logs_default';
+                    await saveToMongoDB(logEntry, collectionName);
+                }
 
                 messageIds.push(messageId);
             } catch (error) {
@@ -106,8 +139,15 @@ async function processBatch() {
             return 0;
         }
 
-        // Bulk index to Elasticsearch
-        const result = await es.bulk({ body: bulkOps });
+        // Bulk index to Elasticsearch (if any)
+        if (bulkOps.length > 0) {
+            const result = await es.bulk({ body: bulkOps });
+
+            if (result.errors) {
+                console.warn('[Worker] Some items failed to index in ES');
+                await handlePartialFailures(redis, result, streamMessages);
+            }
+        }
 
         if (result.errors) {
             console.warn('[Worker] Some items failed to index');
@@ -209,11 +249,12 @@ async function gracefulShutdown() {
     }
 
     // Close connections
-    const { closeRedisClient } = await import('../src/infrastructure/logging/redisClient.js');
-    const { closeElasticsearchClient } = await import('../src/infrastructure/logging/esClient.js');
+    const { closeRedisClient } = await import('../infrastructure/logging/redisClient.js');
+    const { closeElasticsearchClient } = await import('../infrastructure/logging/esClient.js');
 
     await closeRedisClient();
     await closeElasticsearchClient();
+    await closeMongoDB();
 
     console.log('[Worker] Shutdown complete');
     process.exit(0);
@@ -234,3 +275,101 @@ process.on('SIGINT', gracefulShutdown);
         process.exit(1);
     }
 })();
+/**
+ * Get date suffix for index naming (YYYY.MM.DD)
+ * @returns {string}
+ */
+function getDateSuffix() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}`;
+}
+
+/**
+ * Save log to MongoDB
+ * @param {Object} logEntry - Log entry
+ * @param {string} collectionName - Collection name (from profile)
+ */
+async function saveToMongoDB(logEntry, collectionName = 'logs_default') {
+    try {
+        // Support both new format and legacy format
+        const isNewFormat = logEntry.schema_version === 1;
+
+        if (isNewFormat) {
+            // New format: use BusinessLog schema with new fields
+            const doc = new BusinessLog({
+                // Core fields
+                log_id: logEntry.log_id,
+                timestamp: logEntry.timestamp,
+                level: logEntry.level,
+                service: logEntry.service,
+                environment: logEntry.environment,
+                kind: logEntry.kind,
+                category: logEntry.category,
+                event: logEntry.event,
+                message: logEntry.message,
+
+                // Trace
+                trace: logEntry.trace,
+
+                // Context (map to metadata)
+                userId: logEntry.context?.user_id || logEntry.context?.accountUID,
+                accountUID: logEntry.context?.accountUID || logEntry.context?.user_id,
+                metadata: logEntry.context || {},
+
+                // Payload
+                payload: logEntry.payload || {},
+
+                // Host
+                host: logEntry.host,
+
+                // Tags
+                tags: logEntry.tags || [],
+
+                // Extra
+                extra: logEntry.extra || {},
+
+                // Tenant
+                tenant_id: logEntry.tenant_id,
+
+                // Legacy compatibility fields
+                operation: logEntry.event,
+                requestId: logEntry.trace?.span_id || logEntry.context?.requestId,
+                serviceName: logEntry.service,
+                env: logEntry.environment
+            });
+
+            // Use collection name from profile
+            doc.collection = collectionName;
+            await doc.save();
+        } else {
+            // Legacy format
+            const doc = new BusinessLog({
+                timestamp: logEntry.timestamp,
+                category: logEntry.category,
+                operation: logEntry.operation || logEntry.event,
+                userId: logEntry.accountUID || logEntry.context?.accountUID,
+                accountUID: logEntry.accountUID || logEntry.context?.accountUID,
+                metadata: logEntry.metadata || logEntry.context || {},
+
+                // Map optional top-level fields
+                amount: logEntry.metadata?.amount || logEntry.context?.amount,
+                currency: logEntry.metadata?.currency || logEntry.context?.currency,
+                status: logEntry.metadata?.status || logEntry.context?.status,
+
+                requestId: logEntry.requestId || logEntry.trace?.span_id,
+                serviceName: logEntry.serviceName || logEntry.service,
+                env: logEntry.env || logEntry.environment
+            });
+
+            doc.collection = collectionName;
+            await doc.save();
+        }
+    } catch (error) {
+        console.error(`[Worker] MongoDB save error (${collectionName}):`, error.message);
+        // We don't throw here to avoid blocking the whole batch if Mongo fails
+        // Ideally, we should have a separate DLQ or retry mechanism for Mongo
+    }
+}

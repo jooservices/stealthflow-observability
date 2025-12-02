@@ -1,0 +1,309 @@
+# =============================================================================
+# StealthFlow Observability - Complete Development Stack
+# =============================================================================
+#
+# This docker-compose file provides a 100% self-contained development environment
+# with all required infrastructure services.
+#
+# Services:
+#   - Redis: Message queue and stream storage
+#   - Elasticsearch: Log storage and search
+#   - MongoDB: Metadata storage
+#   - Observability API: REST API server
+#   - Log Worker: Background log processor
+#
+# Usage:
+#   docker-compose up -d
+#
+# Only the API port (3100) is exposed externally.
+# All other services communicate via internal Docker network.
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # Infrastructure Services
+  # ===========================================================================
+
+  redis:
+    image: redis:7-alpine
+    container_name: stealthflow-redis
+    command: redis-server --appendonly yes --maxmemory ${REDIS_MAXMEMORY:-512mb} --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - observability-net
+    # NO external port binding - internal network only for complete isolation
+    deploy:
+      resources:
+        limits:
+          cpus: ${REDIS_CPUS:-1.0}
+          memory: ${REDIS_MEM:-1g}
+        reservations:
+          cpus: ${REDIS_CPUS_RESERVATION:-0.25}
+          memory: ${REDIS_MEM_RESERVATION:-256m}
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: stealthflow-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms${ES_HEAP:-4g} -Xmx${ES_HEAP:-4g}"
+      - cluster.name=stealthflow-dev
+      - node.name=es-node-1
+      - bootstrap.memory_lock=true
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - observability-net
+    # NO external port binding - internal network only for complete isolation
+    deploy:
+      resources:
+        limits:
+          cpus: ${ES_CPUS:-4.0}
+          memory: ${ES_MEM:-8g}
+        reservations:
+          cpus: ${ES_CPUS_RESERVATION:-2.0}
+          memory: ${ES_MEM_RESERVATION:-4g}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: stealthflow-mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=observability
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - observability-net
+    # NO external port binding - internal network only for complete isolation
+    deploy:
+      resources:
+        limits:
+          cpus: ${MONGO_CPUS:-2.0}
+          memory: ${MONGO_MEM:-4g}
+        reservations:
+          cpus: ${MONGO_CPUS_RESERVATION:-1.0}
+          memory: ${MONGO_MEM_RESERVATION:-2g}
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: stealthflow-kibana
+    ports:
+      - "5601:5601"
+    # Access Kibana via: http://localhost:5601
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - observability-net
+    deploy:
+      resources:
+        limits:
+          cpus: ${KIBANA_CPUS:-1.0}
+          memory: ${KIBANA_MEM:-1g}
+        reservations:
+          cpus: ${KIBANA_CPUS_RESERVATION:-0.5}
+          memory: ${KIBANA_MEM_RESERVATION:-512m}
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ===========================================================================
+  # Application Services
+  # ===========================================================================
+
+  observability-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: observability-api
+    ports:
+      - "3100:3000" # Only API port exposed externally
+    deploy:
+      resources:
+        limits:
+          cpus: ${API_CPUS:-1.0}
+          memory: ${API_MEM:-512m}
+        reservations:
+          cpus: ${API_CPUS_RESERVATION:-0.5}
+          memory: ${API_MEM_RESERVATION:-256m}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=observability-api,component=api"
+    environment:
+      # Infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_TLS_VERIFY: 'false'
+
+      MONGODB_URI: mongodb://mongodb:27017/observability
+
+      # Logging config
+      LOG_STREAM_NAME: logs:stream
+      LOG_CONSUMER_GROUP: stealthflow-log-workers
+      LOG_BATCH_SIZE: 200
+      LOG_BLOCK_TIMEOUT_MS: 2000
+      LOG_INDEX_ALIAS: stealthflow_develop_logs
+
+      # API authentication / rate limiting
+      API_KEYS: ${API_KEYS:-}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      RATE_LIMIT_BATCH_MAX: ${RATE_LIMIT_BATCH_MAX:-20}
+
+      # Fallback
+      FALLBACK_LOG_DIR: /var/log/observability/fallback
+      FALLBACK_RETENTION_DAYS: 7
+
+      # Circuit breaker
+      CIRCUIT_BREAKER_THRESHOLD: 5
+      CIRCUIT_BREAKER_TIMEOUT: 60000
+
+      # Server
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+
+    volumes:
+      - ./logs:/var/log/observability
+
+    networks:
+      - observability-net
+
+    depends_on:
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  log-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: log-worker
+    command: npm run worker
+    deploy:
+      resources:
+        limits:
+          cpus: ${WORKER_CPUS:-1.0}
+          memory: ${WORKER_MEM:-1g}
+        reservations:
+          cpus: ${WORKER_CPUS_RESERVATION:-0.5}
+          memory: ${WORKER_MEM_RESERVATION:-512m}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=observability-api,component=worker"
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep -f log-worker.js || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    environment:
+      # Infrastructure
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      MONGODB_URI: mongodb://mongodb:27017/observability
+
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+
+      # Stream config
+      LOG_STREAM_NAME: logs:stream
+      LOG_CONSUMER_GROUP: stealthflow-log-workers
+      LOG_BATCH_SIZE: 200
+      LOG_BLOCK_TIMEOUT_MS: 2000
+      LOG_INDEX_ALIAS: stealthflow_develop_logs
+
+      # Circuit breaker
+      CIRCUIT_BREAKER_THRESHOLD: 5
+      CIRCUIT_BREAKER_TIMEOUT: 60000
+
+      NODE_ENV: development
+
+    volumes:
+      - ./logs:/var/log/observability
+
+    networks:
+      - observability-net
+
+    depends_on:
+      observability-api:
+        condition: service_healthy
+
+    restart: unless-stopped
+
+# =============================================================================
+# Networks
+# =============================================================================
+
+networks:
+  observability-net:
+    driver: bridge
+    name: observability-network
+
+# =============================================================================
+# Volumes (Persistent Data)
+# =============================================================================
+
+volumes:
+  redis-data:
+    name: stealthflow-redis-data
+  elasticsearch-data:
+    name: stealthflow-elasticsearch-data
+  mongodb-data:
+    name: stealthflow-mongodb-data
