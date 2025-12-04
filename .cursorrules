@@ -1,0 +1,69 @@
+# Cursor Rules for StealthFlow Observability
+
+## Documentation Discovery Rules
+
+### First-Time Scan Priority
+
+When scanning documentation for the first time:
+
+1. **ALWAYS start with**: `docs/stealthflow-observability/00-index/README.md`
+2. **PRIORITY ORDER**:
+   - `docs/stealthflow-observability/**` - HIGH priority (project-specific)
+   - `docs/master/**` - LOW priority (reference only)
+3. **Metadata parsing**:
+   - Files with `scope: "project"` and `project: "stealthflow-observability"` → HIGH priority
+   - Files with `scope: "master"` → LOW priority
+   - Files with `priority: "highest"` → Index first
+4. **Search behavior**:
+   - When user asks about "API", check `docs/stealthflow-observability/.../api/` FIRST
+   - Only reference `docs/master/` when explicitly asked about "standards"
+5. **Structure understanding**:
+   - `docs/stealthflow-observability/` = Project documentation (use this)
+   - `docs/master/` = Shared standards (reference only, submodule)
+
+### Entry Points
+
+Primary entry points (read in order):
+1. `README.md` (root)
+2. `docs/README.md`
+3. `docs/stealthflow-observability/00-index/README.md`
+4. `docs/stealthflow-observability/05-systems/stealthflow-observability/README.md`
+
+## Documentation Standards
+
+- All project docs should have `scope: "project"` and `project: "stealthflow-observability"`
+- All project docs should link to relevant master standards
+- API docs must follow [API Standard](docs/master/03-technical/standards/api-standard.md)
+- Logging docs must follow [Logging Standard](docs/master/03-technical/standards/logging-standard.md)
+
+## Code Standards
+
+- Follow ESLint configuration (`.eslintrc.json`)
+- Use ES modules (import/export)
+- Write tests for all new features
+- Update documentation when adding features
+- Use Node.js 22+ and npm 11+
+
+## Project Structure
+
+- `src/` - Source code
+- `docs/master/` - Architecture center submodule (standards reference)
+- `docs/stealthflow-observability/` - Project-specific documentation
+- `scripts/` - Utility scripts
+
+## Ignore Patterns
+
+Ignore these paths when indexing:
+- `node_modules/`
+- `dist/`, `build/`, `coverage/`
+- `.env*` files
+- `.DS_Store`, `.idea/`, `.vscode/`
+- `*.log`, `*.tmp`
+
+## Language Guidance
+
+### Node.js
+- Package manager: npm (lockfile committed)
+- Lint: `npm run lint`
+- Test: `npm test`
+- Build: `npm run build` (if applicable)

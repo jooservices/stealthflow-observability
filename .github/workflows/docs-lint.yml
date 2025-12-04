@@ -1,0 +1,71 @@
+name: Docs Lint
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      # Needed for gitleaks to scan the repository content
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install docs tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mkdocs>=1.5,<2.0" pyyaml
+
+      - name: Validate metadata front matter
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys, yaml
+
+          required = {"title", "type", "what", "why", "how", "owner", "status", "last_updated", "tags", "ai_semantics"}
+          ai_required = {"layer", "relates_to"}
+          errors = []
+
+          for path in Path("docs").rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            if not text.startswith("---"):
+              errors.append(f"{path}: missing front matter delimiter")
+              continue
+            try:
+              fm_text = text.split("---", 2)[1]
+              data = yaml.safe_load(fm_text) or {}
+            except Exception as exc:
+              errors.append(f"{path}: failed to parse front matter ({exc})")
+              continue
+            missing = required - set(data.keys())
+            if missing:
+              errors.append(f"{path}: missing keys {sorted(missing)}")
+              continue
+            ai = data.get("ai_semantics", {})
+            if not isinstance(ai, dict) or (ai_required - set(ai.keys())):
+              errors.append(f"{path}: ai_semantics incomplete (need layer, relates_to)")
+          if errors:
+            print("\n".join(errors))
+            sys.exit(1)
+          PY
+
+      - name: MkDocs build (strict)
+        run: |
+          cd docs
+          mkdocs build --strict --verbose
+
+      - name: Secret scan (docs repo)
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          args: --source . --verbose --redact

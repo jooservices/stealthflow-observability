@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        files: "\\.(md|markdown)$"
+
+  - repo: https://github.com/zricethezav/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+        args: ["protect", "--staged"]
+
+  - repo: local
+    hooks:
+      - id: conventional-commit-msg
+        name: conventional-commit-msg
+        entry: bash -c 'echo "$1" | grep -Eq "^(feat|fix|docs|chore|refactor|test|perf|build|ci)(\\([^)]+\\))?: .+"'
+        language: system
+        stages: [commit-msg]
+        types: [commit-msg]
+        fail_fast: true
+        verbose: true
+        description: "Validate Conventional Commit format"

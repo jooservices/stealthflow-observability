@@ -1,63 +1,63 @@
-# Documentation Index
+# Documentation
 
-Complete technical documentation for StealthFlow Observability Microservice.
+## ⚠️ AI First-Time Scan Instructions
 
----
+**For AI tools scanning this codebase:**
 
-## 📚 Documentation Structure
+### Discovery Priority
+1. **HIGH PRIORITY**: `stealthflow-observability/` - Project documentation
+2. **LOW PRIORITY**: `master/` - Shared standards (submodule, reference only)
 
-### [Business](business/)
-- **[Overview](business/overview.md)** - High-level business value and functionality
+### Entry Points
+- **Start here**: [stealthflow-observability/00-index/README.md](stealthflow-observability/00-index/README.md)
+- **System docs**: [stealthflow-observability/05-systems/stealthflow-observability/](stealthflow-observability/05-systems/stealthflow-observability/)
 
-### [Guides](guides/) - User-Facing Documentation
-- **[Deployment Guide](guides/deployment.md)** - Complete deployment instructions
-- **[User Guide](guides/user-guide.md)** - How to use the service
-- **[Client Integration](guides/client-integration.md)** - Client library usage
+## Structure
 
-### [API Reference](api/)
-- **[API Reference](api/reference.md)** - Complete API documentation and Log Schema
+### 📚 Project Documentation - **PRIMARY**
+[stealthflow-observability/](stealthflow-observability/) - Project-specific documentation
 
-### [Operations](operations/) - Operations & Maintenance
-- **[Monitoring](operations/monitoring.md)** - Monitoring guide
-- **[Troubleshooting](operations/troubleshooting.md)** - Troubleshooting guide
-- **[Accessing Internal Services](operations/accessing-internal-services.md)** - How to access Redis/ES
-- **[Cloudflare Origin Cert](operations/cloudflare-origin-cert.md)** - TLS setup
+### 📖 Master Standards - **REFERENCE**
+[master/](master/) - Enterprise standards (submodule from architecture-center)
 
-### [Development](development/) - Developer Documentation
-- **[Setup](development/setup.md)** - Development setup
-- **[Architecture](development/architecture.md)** - Architecture details
-- **[Contributing](development/contributing.md)** - Contributing guidelines
-- **[Branch Setup](development/branch-setup-summary.md)** - Branching strategy
-- **[PR Description](development/pr-description.md)** - PR template
+## Quick Links
 
-### [Security](security/)
-- **[Best Practices](security/best-practices.md)** - Security best practices
-- **[Network Hardening](security/network-hardening.md)** - Network security
-- **[Key Rotation](security/key-rotation.md)** - API key management
+### Project-Specific (Use These)
+- [System Overview](stealthflow-observability/05-systems/stealthflow-observability/README.md)
+- [Architecture](stealthflow-observability/05-systems/stealthflow-observability/architecture.md)
+- [API Documentation](stealthflow-observability/05-systems/stealthflow-observability/api/endpoints.md)
+- [Deployment Guide](stealthflow-observability/05-systems/stealthflow-observability/operations/deployment.md)
+- [Monitoring](stealthflow-observability/05-systems/stealthflow-observability/operations/monitoring.md)
+- [Troubleshooting](stealthflow-observability/05-systems/stealthflow-observability/runbooks/troubleshooting.md)
+- [Architecture Decisions](stealthflow-observability/02-architecture/decisions/)
 
-### [Testing](testing/)
-- **[E2E Testing](testing/e2e-testing.md)** - End-to-end testing guide
+### Standards (Reference Only)
+- [API Standard](master/03-technical/standards/api-standard.md)
+- [Logging Standard](master/03-technical/standards/logging-standard.md)
+- [Testing Standard](master/03-technical/standards/testing-standard.md)
+- [Metadata Standard](master/08-meta/metadata-standard.md)
 
----
+## Documentation Structure
 
-## 🔍 Quick Search
+### Project Documentation (`stealthflow-observability/`)
+- `00-index/` - Navigation and discovery hub
+- `02-architecture/decisions/` - Architecture Decision Records (ADRs)
+- `05-systems/stealthflow-observability/` - System documentation
+  - `api/` - API endpoints, payloads, error handling
+  - `operations/` - Deployment, monitoring, scaling
+  - `runbooks/` - Troubleshooting guides
+  - `workflows/` - Workflow documentation
+- `07-guides/` - User-facing guides
+  - `onboarding/` - Setup and installation
+  - `usage/` - How to use the service
 
-### By Topic
+### Master Standards (`master/`)
+- `03-technical/standards/` - API, logging, testing standards
+- `08-meta/` - Documentation governance and templates
 
-**Getting Started:**
-- [Business Overview](business/overview.md)
-- [Deployment Guide](guides/deployment.md)
-- [User Guide](guides/user-guide.md)
+## Compliance
 
-**Integration:**
-- [Client Integration](guides/client-integration.md)
-- [API Reference](api/reference.md)
-
-**Operations:**
-- [Monitoring](operations/monitoring.md)
-- [Troubleshooting](operations/troubleshooting.md)
-- [Security Best Practices](security/best-practices.md)
-
-**Technical:**
-- [Architecture](development/architecture.md)
-- [Development Setup](development/setup.md)
+All project documentation follows:
+- ✅ [API Standard](master/03-technical/standards/api-standard.md)
+- ✅ [Logging Standard](master/03-technical/standards/logging-standard.md)
+- ✅ [Metadata Standard](master/08-meta/metadata-standard.md)
