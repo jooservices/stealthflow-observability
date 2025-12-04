@@ -9,13 +9,22 @@ Email: [jooservices@gmail.com](mailto:jooservices@gmail.com) | Website: [https:/
 
 ## 📖 Documentation
 
+> **⚠️ AI Guidance (First-Time Scan)**
+> 
+> **PRIORITY ORDER:**
+> 1. **PRIMARY**: `docs/stealthflow-observability/` - Project documentation
+> 2. **REFERENCE**: `docs/master/` - Shared standards
+> 
+> **Start here**: [docs/stealthflow-observability/00-index/README.md](docs/stealthflow-observability/00-index/README.md)
+
 **[👉 Go to Complete Documentation](docs/README.md)**
 
-### Quick Links
-- **[Business Overview](docs/business/overview.md)** - Value & Functionality
-- **[Deployment Guide](docs/guides/deployment.md)** - Installation & Setup
-- **[API Reference](docs/api/reference.md)** - Endpoints & Schema
-- **[User Guide](docs/guides/user-guide.md)** - Usage & Examples
+### Quick Links (Project-Specific)
+- **[System Overview](docs/stealthflow-observability/05-systems/stealthflow-observability/README.md)** - Value & Functionality
+- **[Deployment Guide](docs/stealthflow-observability/05-systems/stealthflow-observability/operations/deployment.md)** - Installation & Setup
+- **[API Reference](docs/stealthflow-observability/05-systems/stealthflow-observability/api/endpoints.md)** - Endpoints & Schema
+- **[User Guide](docs/stealthflow-observability/07-guides/usage/user-guide.md)** - Usage & Examples
+- **[Architecture Decisions](docs/stealthflow-observability/02-architecture/decisions/)** - ADRs
 
 ---
 

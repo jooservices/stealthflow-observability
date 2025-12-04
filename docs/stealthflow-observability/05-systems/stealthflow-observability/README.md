@@ -1,3 +1,28 @@
+---
+title: "StealthFlow Observability - System Overview"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Business overview and system introduction"
+why: "Provide high-level understanding of the system"
+how: "Read this first to understand the system's purpose and value"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['system', 'overview', 'business', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  scope: "project"
+  project: "stealthflow-observability"
+  priority: "high"
+  relates_to: ['observability', 'logging']
+  source: "project"
+compliance:
+  standards:
+    - path: "../../../master/03-technical/standards/logging-standard.md"
+      required: true
+---
+
 # StealthFlow Observability - Business Overview
 
 ## Executive Summary

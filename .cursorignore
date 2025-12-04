@@ -1,0 +1,47 @@
+# Build artifacts
+site/
+dist/
+build/
+coverage/
+.nyc_output/
+.next/
+
+# Dependencies / environments
+node_modules/
+.pnpm-store/
+.yarn/
+vendor/
+.venv/
+.python-version
+.python_packages/
+.tox/
+
+# Caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.parcel-cache/
+.turbo/
+__pycache__/
+.cache/
+.composer/
+
+# Logs & temp
+*.log
+*.tmp
+*.swp
+*.pid
+
+# Env files
+.env
+.env.*
+
+# Editor state
+.DS_Store
+.idea/
+.vscode/
+.cursor/
+.ipynb_checkpoints/
+
+# Submodules (reference only, don't index content)
+docs/master/**

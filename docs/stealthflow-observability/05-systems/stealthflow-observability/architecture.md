@@ -1,3 +1,28 @@
+---
+title: "System Architecture"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Complete architecture documentation for StealthFlow Observability"
+why: "Document system design, components, and data flows"
+how: "Reference for understanding system architecture"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['architecture', 'system', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  scope: "project"
+  project: "stealthflow-observability"
+  priority: "high"
+  relates_to: ['architecture', 'design', 'components']
+  source: "project"
+compliance:
+  standards:
+    - path: "../../../master/03-technical/principles/architectural-principles.md"
+      required: true
+---
+
 # Architecture
 
 Complete architecture documentation for StealthFlow Observability Microservice.

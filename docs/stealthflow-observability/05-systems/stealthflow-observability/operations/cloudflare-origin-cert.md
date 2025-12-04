@@ -1,3 +1,20 @@
+---
+title: "Cloudflare Origin Certificate"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Guide for setting up Cloudflare Origin Certificate for HAProxy"
+why: "Secure domain with Cloudflare Full (Strict) mode"
+how: "Follow steps to configure origin certificate"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['security', 'tls', 'cloudflare', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['security', 'tls']
+---
+
 # Cloudflare Origin Certificate for HAProxy
 
 Plan to secure `log.jooservices.com` with Cloudflare Full (Strict) using an origin certificate.

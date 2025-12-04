@@ -1,0 +1,95 @@
+name: Docs Lint
+
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      # Needed for gitleaks to scan the repository content
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Initialize submodules
+        run: |
+          git submodule update --init --recursive docs/master
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install docs tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install "mkdocs>=1.5,<2.0" pyyaml
+
+      - name: Validate metadata front matter
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys, yaml
+
+          required = {"title", "type", "what", "why", "how", "owner", "status", "last_updated", "tags", "ai_semantics"}
+          ai_required = {"layer", "relates_to"}
+          errors = []
+
+          # Exclude submodule and old deleted files
+          exclude_paths = {"docs/master", "docs/api", "docs/business", "docs/development", "docs/guides", "docs/operations", "docs/security", "docs/testing"}
+
+          for path in Path("docs").rglob("*.md"):
+            # Skip submodule and old directories
+            path_str = str(path)
+            if any(path_str.startswith(exclude) for exclude in exclude_paths):
+              continue
+            
+            text = path.read_text(encoding="utf-8")
+            if not text.startswith("---"):
+              errors.append(f"{path}: missing front matter delimiter")
+              continue
+            try:
+              fm_text = text.split("---", 2)[1]
+              data = yaml.safe_load(fm_text) or {}
+            except Exception as exc:
+              errors.append(f"{path}: failed to parse front matter ({exc})")
+              continue
+            missing = required - set(data.keys())
+            if missing:
+              errors.append(f"{path}: missing keys {sorted(missing)}")
+              continue
+            ai = data.get("ai_semantics", {})
+            if not isinstance(ai, dict) or (ai_required - set(ai.keys())):
+              errors.append(f"{path}: ai_semantics incomplete (need layer, relates_to)")
+          if errors:
+            print("\n".join(errors))
+            sys.exit(1)
+          PY
+
+      - name: MkDocs build (strict)
+        continue-on-error: true
+        run: |
+          if [ -f docs/mkdocs.yml ]; then
+            cd docs
+            mkdocs build --strict --verbose
+          else
+            echo "⚠️  mkdocs.yml not found, skipping MkDocs build"
+            echo "Project uses plain markdown files, not MkDocs"
+            echo "This is expected - project documentation is plain markdown"
+          fi
+
+      - name: Secret scan (docs repo)
+        continue-on-error: true
+        if: false  # Skip gitleaks scan - requires license
+        uses: zricethezav/gitleaks-action@v2
+        with:
+          args: --source . --verbose --redact

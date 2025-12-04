@@ -1,0 +1,60 @@
+name: App CI (example)
+
+on:
+  workflow_call:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      security-events: write
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Initialize submodules
+        run: |
+          git submodule update --init --recursive docs/master
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Tests (unit/integration)
+        run: npm test --if-present
+
+      - name: Contract tests (if present)
+        run: npm run test:contract --if-present
+
+      - name: Build
+        run: npm run build --if-present
+
+      # - name: Secret scan
+      #   continue-on-error: true
+      #   if: false  # Skip gitleaks scan - requires license
+      #   uses: zricethezav/gitleaks-action@v2
+      #   with:
+      #     args: --source . --verbose --redact
+      # TODO: Re-enable when GITLEAKS_LICENSE secret is configured
+
+      - name: Coverage report
+        if: always()
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            echo "Coverage file present."
+          else
+            echo "No coverage file; ensure coverage generation if required."
+          fi

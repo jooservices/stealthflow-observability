@@ -1,49 +1,39 @@
-# Dependencies
+### Editors / IDEs
+.vscode/
+.cursor/
+.idea/
+*.iml
+
+### OS / swap
+.DS_Store
+*.swp
+
+### Dependencies
 node_modules/
-vendor/
 package-lock.json
-yarn.lock
+# Keep package.json, but ignore lock files if using npm/yarn
+# Uncomment if you want to ignore lock files:
+# yarn.lock
+# pnpm-lock.yaml
 
-# Environment
-.env
-.env.local
-.env.*.local
+### Build / dist
+dist/
+build/
+coverage/
+.nyc_output/
 
-# Logs
-logs/
+### Logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-/var/log/observability/
 
-# Coverage
-coverage/
-*.lcov
+### Environment
+.env
+.env.local
+.env.*.local
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Build
-dist/
-build/
-
-# Docker
-*.tar
-.dockerignore
-
-# Test
-__tests__/__snapshots__/
-
-# Temp
-tmp/
-temp/
-.cache/
+### Submodules
+# Submodule pointer is tracked, but ignore changes inside submodules
+docs/master/*
+!docs/master/.git

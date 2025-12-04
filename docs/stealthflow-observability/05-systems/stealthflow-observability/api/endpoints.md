@@ -1,6 +1,40 @@
+---
+title: "API Endpoints"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Complete API documentation for StealthFlow Observability"
+why: "Document all API endpoints, authentication, and usage"
+how: "Reference for API integration"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['api', 'endpoints', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  scope: "project"
+  project: "stealthflow-observability"
+  priority: "high"
+  relates_to: ['api', 'integration']
+  source: "project"
+compliance:
+  standards:
+    - path: "../../../../master/03-technical/standards/api-standard.md"
+      required: true
+      checked: "2025-12-05"
+---
+
 # API Reference
 
 Complete API documentation for StealthFlow Observability Microservice.
+
+## Standards Compliance
+
+This document follows [API Standard](../../../../master/03-technical/standards/api-standard.md):
+- ✅ Versioning: `/api/v1/...` (URI-based)
+- ✅ Error format: Standardized JSON
+- ✅ Auth: Bearer tokens (API keys)
+- ✅ Date format: ISO 8601 UTC
 
 ---
 

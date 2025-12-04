@@ -1,3 +1,20 @@
+---
+title: "Deployment Guide"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Complete guide for deploying StealthFlow Observability microservice"
+why: "Provide automated deployment instructions"
+how: "Follow this guide to deploy the service"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['deployment', 'operations', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['deployment', 'operations']
+---
+
 # Deployment Guide
 
 Complete guide for deploying the StealthFlow Observability microservice with 100% automation.
