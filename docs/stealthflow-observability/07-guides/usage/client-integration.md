@@ -1,3 +1,20 @@
+---
+title: "Client Integration Guide"
+type: "guide"
+scope: "project"
+project: "stealthflow-observability"
+what: "Guide for integrating observability client into applications"
+why: "Help developers integrate the observability service"
+how: "Follow this guide to integrate the client"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['integration', 'client', 'usage', 'stealthflow-observability']
+ai_semantics:
+  layer: "guides"
+  relates_to: ['integration', 'client']
+---
+
 # Observability Client - Integration Guide
 
 ## Quick Start

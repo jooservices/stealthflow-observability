@@ -1,3 +1,20 @@
+---
+title: "Monitoring Guide"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Complete guide for monitoring StealthFlow Observability Microservice"
+why: "Provide monitoring and observability instructions"
+how: "Follow this guide to monitor the service"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['monitoring', 'operations', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['monitoring', 'operations']
+---
+
 # Monitoring Guide
 
 Complete guide for monitoring StealthFlow Observability Microservice.

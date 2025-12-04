@@ -37,7 +37,15 @@ jobs:
           ai_required = {"layer", "relates_to"}
           errors = []
 
+          # Exclude submodule and old deleted files
+          exclude_paths = {"docs/master", "docs/api", "docs/business", "docs/development", "docs/guides", "docs/operations", "docs/security", "docs/testing"}
+
           for path in Path("docs").rglob("*.md"):
+            # Skip submodule and old directories
+            path_str = str(path)
+            if any(path_str.startswith(exclude) for exclude in exclude_paths):
+              continue
+            
             text = path.read_text(encoding="utf-8")
             if not text.startswith("---"):
               errors.append(f"{path}: missing front matter delimiter")

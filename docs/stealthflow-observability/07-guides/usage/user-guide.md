@@ -1,3 +1,20 @@
+---
+title: "User Guide"
+type: "guide"
+scope: "project"
+project: "stealthflow-observability"
+what: "User guide for using StealthFlow Observability Microservice"
+why: "Help users understand how to use the service"
+how: "Follow this guide to use the observability service"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['user-guide', 'usage', 'stealthflow-observability']
+ai_semantics:
+  layer: "guides"
+  relates_to: ['usage', 'user-guide']
+---
+
 # User Guide - How to Use Observability Microservice
 
 ## Quick Start

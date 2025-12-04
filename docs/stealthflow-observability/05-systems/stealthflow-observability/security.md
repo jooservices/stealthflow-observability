@@ -1,3 +1,20 @@
+---
+title: "Security Best Practices"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Security best practices and guidelines for StealthFlow Observability"
+why: "Ensure secure logging and data handling"
+how: "Follow security guidelines when using the service"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['security', 'best-practices', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['security', 'best-practices']
+---
+
 # Security Best Practices
 
 ## What NOT to Log

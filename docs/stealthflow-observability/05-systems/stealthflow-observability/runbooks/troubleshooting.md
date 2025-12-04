@@ -1,3 +1,20 @@
+---
+title: "Troubleshooting Guide"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Common issues and solutions for StealthFlow Observability Microservice"
+why: "Help diagnose and resolve common problems"
+how: "Use this guide when encountering issues"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['troubleshooting', 'runbooks', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['troubleshooting', 'operations']
+---
+
 # Troubleshooting Guide
 
 Common issues and solutions for StealthFlow Observability Microservice.

@@ -1,3 +1,20 @@
+---
+title: "Local Development Setup"
+type: "guide"
+scope: "project"
+project: "stealthflow-observability"
+what: "Complete guide for setting up local development environment"
+why: "Help developers set up their local environment"
+how: "Follow this guide to set up development environment"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['development', 'setup', 'onboarding', 'stealthflow-observability']
+ai_semantics:
+  layer: "guides"
+  relates_to: ['development', 'setup']
+---
+
 # Development Setup
 
 Complete guide for setting up development environment.

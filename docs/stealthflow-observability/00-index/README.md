@@ -13,11 +13,7 @@ last_updated: "2025-12-05"
 tags: ['navigation', 'index', 'stealthflow-observability']
 ai_semantics:
   layer: "navigation"
-  scope: "project"
-  project: "stealthflow-observability"
-  priority: "highest"
-  discovery_order: 1
-  entry_point: true
+  relates_to: ['documentation', 'navigation']
 ---
 
 # Documentation Index

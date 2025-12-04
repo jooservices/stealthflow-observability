@@ -1,3 +1,20 @@
+---
+title: "Accessing Internal Services"
+type: "system-doc"
+scope: "project"
+project: "stealthflow-observability"
+what: "Guide for accessing internal services (Redis, Elasticsearch, etc.)"
+why: "Help developers access infrastructure services"
+how: "Follow instructions to access services"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['operations', 'infrastructure', 'stealthflow-observability']
+ai_semantics:
+  layer: "system"
+  relates_to: ['operations', 'infrastructure']
+---
+
 # Important: Accessing Internal Services
 
 Since all infrastructure ports are now completely isolated (no external binding), you cannot access them directly from your host machine. This is by design for complete isolation.
