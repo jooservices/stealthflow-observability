@@ -1,3 +1,20 @@
+---
+title: "Documentation Index"
+type: "index"
+scope: "project"
+project: "stealthflow-observability"
+what: "Main documentation index with AI guidance and structure overview"
+why: "Provide entry point and navigation for documentation"
+how: "Start here to understand documentation structure"
+owner: "StealthFlow Team"
+status: "approved"
+last_updated: "2025-12-05"
+tags: ['navigation', 'index', 'documentation', 'stealthflow-observability']
+ai_semantics:
+  layer: "navigation"
+  relates_to: ['documentation', 'navigation']
+---
+
 # Documentation
 
 ## ⚠️ AI First-Time Scan Instructions
