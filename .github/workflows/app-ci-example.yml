@@ -42,12 +42,13 @@ jobs:
       - name: Build
         run: npm run build --if-present
 
-      - name: Secret scan
-        continue-on-error: true
-        if: false  # Skip gitleaks scan - requires license
-        uses: zricethezav/gitleaks-action@v2
-        with:
-          args: --source . --verbose --redact
+      # - name: Secret scan
+      #   continue-on-error: true
+      #   if: false  # Skip gitleaks scan - requires license
+      #   uses: zricethezav/gitleaks-action@v2
+      #   with:
+      #     args: --source . --verbose --redact
+      # TODO: Re-enable when GITLEAKS_LICENSE secret is configured
 
       - name: Coverage report
         if: always()
