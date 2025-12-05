@@ -27,45 +27,26 @@ compliance:
 
 ## Executive Summary
 
-StealthFlow Observability is a critical infrastructure component designed to ensure the reliability, performance, and security of the StealthFlow ecosystem. It acts as a "black box" flight recorder for your digital operations, capturing every significant event, error, and transaction in real-time.
+StealthFlow Observability is the internal logging service that receives structured events over HTTP, buffers them in Redis Streams, and routes them to Elasticsearch and/or MongoDB based on configurable profiles. It adds API key authentication, rate limiting, and Prometheus metrics out of the box.
 
-By centralizing logs from all applications into a single, searchable platform, this service enables:
-- **Faster Issue Resolution:** Reduce downtime by pinpointing the root cause of errors in seconds.
-- **Operational Visibility:** Gain real-time insights into system health and user activity.
-- **Compliance & Security:** Maintain a secure audit trail of all critical actions.
+## Key Value
+- **Fast triage:** Structured logs are indexed in Elasticsearch and queryable in Kibana (port `5601` by default).
+- **Loss prevention:** Redis-backed queue with DLQ (`logs:failed`) plus file-based fallback when Redis is unavailable.
+- **Flexible routing:** Storage profiles let you send specific kinds/categories to Elasticsearch or MongoDB.
+- **Operational guardrails:** API key auth, per-endpoint rate limits, and health/metrics endpoints for monitoring.
 
-## Key Business Value
-
-### 1. Minimized Downtime & Revenue Protection
-When systems fail, every second counts. StealthFlow Observability provides engineering teams with immediate visibility into what went wrong, where, and why.
-- **Impact:** Reduces Mean Time to Resolution (MTTR) by up to 80%.
-- **Benefit:** Protects revenue streams and user trust by ensuring high system availability.
-
-### 2. Data-Driven Decision Making
-Beyond error tracking, the service captures business-relevant events (e.g., "Order Placed", "User Registered").
-- **Impact:** Visual dashboards (via Kibana) can display real-time business metrics.
-- **Benefit:** Enables stakeholders to monitor KPIs and operational trends without needing SQL queries or developer assistance.
-
-### 3. Scalability & Cost Efficiency
-Designed with a modern, asynchronous architecture, the service handles high volumes of data without slowing down your core applications.
-- **Impact:** Decouples logging from user-facing processes.
-- **Benefit:** Ensures your applications remain fast and responsive, even during peak traffic, while optimizing infrastructure costs.
-
-## How It Works (Simplified)
-
-1. **Capture:** Your applications (Web, Mobile, Backend) send "events" (logs) to the Observability Service.
-2. **Process:** The service instantly acknowledges receipt (so the app doesn't wait) and queues the data.
-3. **Store:** Background workers efficiently batch and store these events in a secure database (Elasticsearch).
-4. **Analyze:** Teams use a visual dashboard (Kibana) to search, filter, and visualize the data.
+## How It Works
+1. Applications send logs to `POST /api/v1/logs` (or `/batch`) with schema v1 payloads.
+2. API authenticates (`X-API-Key`), rate limits, validates, and appends to Redis stream `logs:stream`.
+3. The log worker (`src/workers/log-worker.js`) reads from the consumer group, resolves a storage profile, and writes to Elasticsearch and/or MongoDB.
+4. Indexed data is available through Kibana (`http://localhost:5601` in docker-compose).
 
 ## Integration & Adoption
-
-- **Seamless Integration:** Developers can integrate the service using standard web protocols (HTTP/REST) or our provided client libraries.
-- **Enterprise Standard:** Built to align with enterprise security and reliability standards, including role-based access and data encryption support.
+- **HTTP-first:** Use the published JSON schema; legacy `{ category, operation, metadata, options }` payloads are still accepted.
+- **Configuration:** Tune routing in `src/config/routingRules.js` and `src/config/storageProfiles.js`; environment in `.env`.
+- **Authentication:** Set `API_KEYS` (comma-separated) and send requests with `X-API-Key`.
 
 ## Contact & Support
-
-For access, feature requests, or support:
-- **Product Owner:** Viet Vu
+- **Owner:** Viet Vu
 - **Email:** [jooservices@gmail.com](mailto:jooservices@gmail.com)
-- **Internal Documentation:** [Technical Docs](../README.md)
+- **Docs Index:** [docs/stealthflow-observability/00-index/README.md](../00-index/README.md)

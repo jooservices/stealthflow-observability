@@ -32,7 +32,7 @@ We need a flexible log routing system that can:
 
 ## Decision
 Implement a 3-layer architecture:
-1. **Log Envelope** - Log payload structure (schema v2)
+1. **Log Envelope** - Log payload structure (schema v1, legacy-compatible)
 2. **Routing Rules** - Logic to determine storage profile (no backend knowledge)
 3. **Storage Profiles** - Map profile names to actual backends
 
@@ -56,5 +56,5 @@ Implement a 3-layer architecture:
 - `src/config/routing.js` - Backward compatible wrapper
 
 ## References
-- [System Architecture](../05-systems/stealthflow-observability/architecture.md)
-- [API Reference](../05-systems/stealthflow-observability/api/endpoints.md)
+- [System Architecture](../../05-systems/stealthflow-observability/architecture.md)
+- [API Reference](../../05-systems/stealthflow-observability/api/endpoints.md)

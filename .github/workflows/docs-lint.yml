@@ -87,9 +87,10 @@ jobs:
             echo "This is expected - project documentation is plain markdown"
           fi
 
-      - name: Secret scan (docs repo)
-        continue-on-error: true
-        if: false  # Skip gitleaks scan - requires license
-        uses: zricethezav/gitleaks-action@v2
-        with:
-          args: --source . --verbose --redact
+      # - name: Secret scan (docs repo)
+      #   continue-on-error: true
+      #   if: false  # Skip gitleaks scan - requires license
+      #   uses: zricethezav/gitleaks-action@v2
+      #   with:
+      #     args: --source . --verbose --redact
+      # TODO: Re-enable when GITLEAKS_LICENSE secret is configured

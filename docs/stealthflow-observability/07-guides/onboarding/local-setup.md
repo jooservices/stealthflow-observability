@@ -17,114 +17,95 @@ ai_semantics:
 
 # Development Setup
 
-Complete guide for setting up development environment.
+Set up a local environment for the observability service and its dependencies.
 
 ---
 
 ## Prerequisites
 
-- **Node.js** >= 20.0.0
-- **npm** >= 10.0.0
-- **Docker** & Docker Compose (optional, for local services)
-- **Git**
+- Node.js >= 22.0.0 (see `package.json` engines)
+- npm >= 11.0.0
+- Docker & Docker Compose (for Redis, Elasticsearch, MongoDB, Kibana)
+- Git
 
 ---
 
 ## Initial Setup
 
-### 1. Clone Repository
+### 1) Clone repository
 
 ```bash
-git clone git@github.com:jooservices/stealthflow.git
+git clone git@github.com:jooservices/stealthflow-observability.git
 cd stealthflow-observability
 ```
 
-### 2. Install Dependencies
+### 2) Install dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Configure Environment
+### 3) Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your configuration:
-- Redis connection (REDIS_HOST, REDIS_PORT)
-- Elasticsearch URL (ELASTICSEARCH_URL)
-
-### 4. Test Connections
-
-```bash
-npm run test:connections
-```
-
-This verifies connectivity to Container #1 infrastructure.
+Edit `.env` for your environment:
+- `API_KEYS` (comma-separated); leave empty to let `./scripts/deploy.sh` auto-generate.
+- Optional tuning: `LOG_STREAM_NAME`, `LOG_BATCH_SIZE`, rate limits, `LOG_INDEX_ALIAS`.
 
 ---
 
 ## Running Locally
 
-### Start API Server
+### Option A: Full stack via Docker Compose (recommended)
+
+```bash
+docker-compose up -d
+```
+
+Brings up Redis, Elasticsearch, MongoDB, Kibana, API (`http://localhost:3100`), and the worker.
+
+### Option B: API/worker from host
+
+1) Start infrastructure with Docker Compose (keeps ports internal):
+```bash
+docker-compose up -d redis elasticsearch mongodb
+```
+
+2) Run the API:
 
 ```bash
 npm run dev
 ```
 
-Server runs on http://localhost:3000
+API listens on `PORT` (default `3000`).
 
-### Start LogWorker
-
-In another terminal:
+3) Run the log worker in another terminal:
 
 ```bash
 npm run worker
 ```
 
-LogWorker processes logs from Redis Stream to Elasticsearch.
+Worker consumes `logs:stream` and applies routing profiles.
 
 ---
 
 ## Development Commands
 
-### Run Tests
-
 ```bash
-# All tests
+# Unit/integration tests
 npm test
 
-# Watch mode
-npm run test:watch
-
-# With coverage
-npm run test:coverage
-```
-
-### Code Quality
-
-```bash
-# Lint
+# Lint + format checks
 npm run lint
-
-# Fix linting issues
 npm run lint:fix
-
-# Format code
 npm run format
-
-# Check formatting
 npm run format:check
 
-# Validate all (lint + format + test)
+# Validate all (lint + format:check + test)
 npm run validate
-```
-
-### Test Connections
-
-```bash
-npm run test:connections
 ```
 
 ---
@@ -133,93 +114,26 @@ npm run test:connections
 
 ```
 src/
-├── api/                    # REST API
-│   ├── server.js          # Express server
-│   └── routes/
-│       ├── logs.js        # Log endpoints
-│       └── health.js      # Health endpoints
-├── infrastructure/         # External services
-│   └── logging/
-│       ├── redisClient.js      # Redis connection
-│       ├── esClient.js         # Elasticsearch connection
-│       └── FallbackLogger.js   # File fallback
-└── shared/                # Shared utilities
+├── api/             # Express server, routes, middleware
+├── config/          # Routing rules + storage profiles
+├── infrastructure/  # Redis, Elasticsearch, MongoDB clients, fallback logger
+├── workers/         # Redis → storage worker
+└── tests/           # API/worker tests
 
 scripts/
-├── deploy.sh              # Automated deployment script
-├── test.sh                 # Comprehensive E2E test suite
-├── demo.sh                 # Demo script (floods test data)
-└── cleanup.sh              # Cleanup script (stop/remove containers)
-
-client/
-└── observability.js       # Client library
+├── deploy.sh        # Compose-based deployment + key generation
+├── demo.sh          # Sends sample logs after deployment
+└── cleanup.sh       # Stops/removes containers and data
 ```
 
 ---
 
 ## Development Workflow
 
-### 1. Create Feature Branch
-
-```bash
-git checkout -b feature/my-feature
-```
-
-### 2. Make Changes
-
-- Write code
-- Add tests
-- Update documentation
-
-### 3. Test Locally
-
-```bash
-# Run tests
-npm test
-
-# Lint
-npm run lint
-
-# Format
-npm run format
-
-# Validate all
-npm run validate
-```
-
-### 4. Test Integration
-
-```bash
-# Start API
-npm run dev
-
-# Start worker (another terminal)
-npm run worker
-
-# Test API
-curl http://localhost:3000/health
-```
-
-### 5. Commit Changes
-
-```bash
-git add .
-git commit -m "feat: add new feature"
-```
-
-Use [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` - New feature
-- `fix:` - Bug fix
-- `docs:` - Documentation
-- `chore:` - Maintenance
-
-### 6. Push and Create PR
-
-```bash
-git push origin feature/my-feature
-```
-
-Create pull request on GitHub/GitLab.
+1) Create a feature branch: `git checkout -b feature/my-feature`  
+2) Make changes + tests/docs  
+3) `npm run validate` before opening a PR  
+4) Push and open PR following Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`)
 
 ---
 
@@ -231,7 +145,7 @@ Create pull request on GitHub/GitLab.
 # Run with debug logging
 DEBUG=* npm run dev
 
-# Or use Node.js debugger
+# Node inspector
 node --inspect src/api/server.js
 ```
 
@@ -242,79 +156,19 @@ node --inspect src/api/server.js
 LOG_LEVEL=debug npm run worker
 ```
 
-### Check Logs
-
-```bash
-# API logs
-tail -f api.log
-
-# Worker logs
-tail -f log-worker.log
-
-# Docker logs
-docker logs observability-api
-docker logs log-worker
-```
-
 ---
 
 ## Testing
 
-### Unit Tests
-
-```bash
-npm test
-```
-
-Tests are located in:
-- `src/**/*.test.js`
-- `scripts/**/*.test.js`
-
-### Integration Tests
-
-```bash
-npm run test:integration
-```
-
-Integration tests verify:
-- API endpoints
-- Redis Stream operations
-- Elasticsearch indexing
-
-### Test Coverage
-
-```bash
-npm run test:coverage
-```
-
-Coverage target: 70%+
-
----
-
 ## Environment Variables
 
-Key environment variables for development:
+- `API_KEYS` — comma-separated API keys (required for authenticated endpoints)
+- `LOG_STREAM_NAME`, `LOG_CONSUMER_GROUP`, `LOG_BATCH_SIZE` — ingestion and worker tuning
+- `LOG_INDEX_ALIAS` — ES index alias used by the worker
+- `FALLBACK_LOG_DIR`, `FALLBACK_RETENTION_DAYS` — local fallback settings
+- Rate limiting: `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX_REQUESTS`, `RATE_LIMIT_BATCH_MAX`
 
-```bash
-# Server
-NODE_ENV=development
-PORT=3000
-
-# Redis
-REDIS_HOST=your-redis-host
-REDIS_PORT=6380
-
-# Elasticsearch
-ELASTICSEARCH_URL=http://your-elasticsearch-host:9201
-
-# Logging
-LOG_STREAM_NAME=logs:stream
-LOG_CONSUMER_GROUP=stealthflow-log-workers
-LOG_BATCH_SIZE=200
-LOG_INDEX_ALIAS=stealthflow_develop_logs
-```
-
-See `.env.example` for complete list.
+See `.env.example` for the full list and defaults.
 
 ---
 
@@ -353,11 +207,8 @@ kill -9 <PID>
 ### Cannot Connect to Redis/Elasticsearch
 
 ```bash
-# Test connections
-npm run test:connections
-
-# Verify .env configuration
-cat .env
+# Verify compose is running
+docker ps --filter name=redis --filter name=elasticsearch
 ```
 
 ### Tests Failing
@@ -374,15 +225,13 @@ npm test -- path/to/test.js
 
 ## Next Steps
 
-- [Architecture Guide](architecture.md) - Understand the architecture
-- [Contributing Guide](contributing.md) - How to contribute
-- [API Reference](../api/reference.md) - API documentation
+- [Architecture](../../05-systems/stealthflow-observability/architecture.md)
+- [API Endpoints](../../05-systems/stealthflow-observability/api/endpoints.md)
+- [User Guide](../usage/user-guide.md)
 
 ---
 
 ## See Also
 
-- [Deployment Guide](../guides/deployment.md) - Production deployment
-- [User Guide](../guides/user-guide.md) - How to use the service
-- [Troubleshooting](../operations/troubleshooting.md) - Common issues
-
+- [System Overview](../../05-systems/stealthflow-observability/README.md)
+- [Client Integration](../usage/client-integration.md)
