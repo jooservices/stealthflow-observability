@@ -149,11 +149,6 @@ async function processBatch() {
             }
         }
 
-        if (result.errors) {
-            console.warn('[Worker] Some items failed to index');
-            await handlePartialFailures(redis, result, streamMessages);
-        }
-
         // Acknowledge all messages
         for (const messageId of messageIds) {
             await redis.xack(STREAM_NAME, CONSUMER_GROUP, messageId);
@@ -260,21 +255,25 @@ async function gracefulShutdown() {
     process.exit(0);
 }
 
+export { processBatch };
+
 // Handle signals
 process.on('SIGTERM', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 
-// Start worker
-(async () => {
-    try {
-        await initializeConsumerGroup();
-        console.log('[Worker] Starting main loop...\n');
-        await mainLoop();
-    } catch (error) {
-        console.error('[Worker] Fatal error:', error);
-        process.exit(1);
-    }
-})();
+// Start worker unless running under test (so unit tests can import without auto-start)
+if (process.env.NODE_ENV !== 'test') {
+    (async () => {
+        try {
+            await initializeConsumerGroup();
+            console.log('[Worker] Starting main loop...\n');
+            await mainLoop();
+        } catch (error) {
+            console.error('[Worker] Fatal error:', error);
+            process.exit(1);
+        }
+    })();
+}
 /**
  * Get date suffix for index naming (YYYY.MM.DD)
  * @returns {string}

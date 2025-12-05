@@ -13,6 +13,19 @@ const app = express();
 // Middleware
 app.use(express.json({ limit: '10mb' }));
 
+// DEBUG: Log all incoming requests
+app.use((req, res, next) => {
+    console.log('--- DEBUG REQUEST ---');
+    console.log(`Method: ${req.method}`);
+    console.log(`URL: ${req.url}`);
+    console.log(`OriginalUrl: ${req.originalUrl}`);
+    console.log(`Path: ${req.path}`);
+    console.log(`Host: ${req.headers['host']}`);
+    console.log(`X-Forwarded-For: ${req.headers['x-forwarded-for']}`);
+    console.log('---------------------');
+    next();
+});
+
 // Request logging and metrics
 app.use((req, res, next) => {
     const timestamp = new Date().toISOString();
