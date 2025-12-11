@@ -58,14 +58,16 @@ detect_docker_compose() {
         return 0
     fi
     
-    # Check for Docker Compose V1 (docker-compose)
+    # Check for Docker Compose V1 (docker-compose) - explicitly block
     if command -v docker-compose &> /dev/null; then
-        DOCKER_COMPOSE_CMD="docker-compose"
-        return 0
+        echo -e "${RED}✗ Legacy docker-compose (v1) detected. It fails with newer Docker versions (missing ContainerConfig).${NC}"
+        echo -e "${RED}✗ Please install Docker Compose V2 and use 'docker compose'.${NC}"
+        exit 1
     fi
     
-    # Neither found - set to V2 as fallback
-    DOCKER_COMPOSE_CMD="docker compose"
+    # Neither found
+    echo -e "${RED}✗ Docker Compose not found. Please install Docker Compose V2 (docker compose).${NC}"
+    exit 1
 }
 
 cd "${PROJECT_ROOT}"

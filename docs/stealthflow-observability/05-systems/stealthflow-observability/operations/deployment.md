@@ -23,6 +23,8 @@ Complete guide for deploying the StealthFlow Observability microservice with 100
 
 For a fully automated deployment with all security features enabled:
 
+> **Important:** Use Docker Compose V2 (`docker compose`). The legacy `docker-compose` v1 binary is incompatible with recent Docker Engine releases and causes `KeyError: 'ContainerConfig'` during `up`. Replace any `docker-compose` commands with `docker compose`.
+
 ```bash
 ./scripts/deploy.sh
 ```
@@ -51,7 +53,7 @@ The deployment requires Container #1 infrastructure running at `192.168.1.13` wi
 ### Local Requirements
 
 - **Docker**: Version 20.10 or higher
-- **docker-compose**: Version 1.29 or higher
+- **Docker Compose**: V2 plugin (`docker compose`). Legacy `docker-compose` v1 is not supported on Docker 25+.
 - **Port 3100**: Must be available (API server)
 - **Disk Space**: At least 1GB free
 - **openssl**: For API key generation
@@ -63,8 +65,8 @@ The deployment requires Container #1 infrastructure running at `192.168.1.13` wi
 docker --version
 docker info
 
-# Check docker-compose
-docker-compose --version
+# Check Docker Compose V2
+docker compose version
 ```
 
 ---

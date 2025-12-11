@@ -88,17 +88,16 @@ detect_docker_compose() {
         return 0
     fi
     
-    # Check for Docker Compose V1 (docker-compose)
+    # Check for Docker Compose V1 (docker-compose) - explicitly block
     if command -v docker-compose &> /dev/null; then
-        DOCKER_COMPOSE_CMD="docker-compose"
-        log_success "Docker Compose V1 detected (docker-compose)"
-        return 0
+        log_error "Legacy docker-compose (v1) detected. It breaks with newer Docker Engine versions (missing ContainerConfig in image inspect)."
+        log_error "Please install Docker Compose V2 and use 'docker compose' instead."
+        exit 1
     fi
     
     # Neither found
     log_error "Docker Compose is not available. Please install either:"
-    log_error "  - Docker Compose V2 (included with Docker Desktop)"
-    log_error "  - Docker Compose V1 (legacy standalone binary)"
+    log_error "  - Docker Compose V2 (included with Docker Desktop or docker-ce-plugin-compose)"
     exit 1
 }
 
