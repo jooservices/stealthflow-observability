@@ -21,6 +21,8 @@ Deploy the observability stack (Redis, Elasticsearch, MongoDB, Kibana, API, Work
 
 ## Quick Start
 
+> **Important:** Use Docker Compose V2 (`docker compose`). The legacy `docker-compose` v1 binary is incompatible with recent Docker Engine releases and causes `KeyError: 'ContainerConfig'` during `up`. Replace any `docker-compose` commands with `docker compose`.
+
 ```bash
 ./scripts/deploy.sh
 ```
@@ -36,12 +38,41 @@ The script will create `.env` if missing, generate API keys when `API_KEYS` is e
 - Host ports `3100` (API) and `5601` (Kibana) available
 - `.env` based on `.env.example` (set `API_KEYS` or let the script generate them)
 
+### Required Infrastructure
+
+The deployment requires Container #1 infrastructure running at `192.168.1.13` with:
+
+| Service | Host | Port | Purpose |
+|---------|------|------|---------|
+| **Redis** | 192.168.1.13 | 6380 | Log streaming queue |
+| **Elasticsearch** | 192.168.1.13 | 9201 | Log storage and search |
+| **MongoDB** | 192.168.1.13 | 27018 | Metadata storage (optional) |
+
+### Local Requirements
+
+- **Docker**: Version 20.10 or higher
+- **Docker Compose**: V2 plugin (`docker compose`). Legacy `docker-compose` v1 is not supported on Docker 25+.
+- **Port 3100**: Must be available (API server)
+- **Disk Space**: At least 1GB free
+- **openssl**: For API key generation
+
+### Verify Prerequisites
+
+```bash
+# Check Docker
+docker --version
+docker info
+
+# Check Docker Compose V2
+docker compose version
+```
+
 ## Manual Deployment
 
 ```bash
 cp .env.example .env           # if needed; set API_KEYS
-docker-compose up -d           # start full stack
-docker-compose ps              # confirm health checks
+docker compose up -d           # start full stack
+docker compose ps              # confirm health checks
 ```
 
 ## Post-Deployment Verification
@@ -76,9 +107,9 @@ curl -X POST http://localhost:3100/api/v1/logs \
 ## Management Commands
 
 ```bash
-docker-compose logs -f observability-api log-worker   # tail app logs
-docker-compose restart observability-api log-worker   # restart services
-docker-compose down                                   # stop stack (data persisted in volumes)
+docker compose logs -f observability-api log-worker   # tail app logs
+docker compose restart observability-api log-worker   # restart services
+docker compose down                                   # stop stack (data persisted in volumes)
 ./scripts/cleanup.sh                                  # optional: tear down + remove volumes
 ```
 

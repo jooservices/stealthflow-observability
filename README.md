@@ -30,6 +30,8 @@ Email: [jooservices@gmail.com](mailto:jooservices@gmail.com) | Website: [https:/
 
 ## Quick Start
 
+> **Important:** Use Docker Compose V2 (`docker compose`). The legacy `docker-compose` binary breaks with newer Docker Engine versions and triggers `KeyError: 'ContainerConfig'` during `up`. Replace any `docker-compose` commands with `docker compose`.
+
 ### 1. Automated Deployment
 Run the deployment script to set up the entire stack:
 ```bash
