@@ -27,29 +27,26 @@ ai_semantics:
 1. **System Documentation** (Start here)
    - [System Overview](../05-systems/stealthflow-observability/README.md)
    - [Architecture](../05-systems/stealthflow-observability/architecture.md)
-   - [Components](../05-systems/stealthflow-observability/components.md) (to be created)
 
 2. **API Documentation**
    - [Endpoints](../05-systems/stealthflow-observability/api/endpoints.md)
-   - [Payloads](../05-systems/stealthflow-observability/api/payloads.md) (to be created)
-   - [Error Handling](../05-systems/stealthflow-observability/api/error-handling.md) (to be created)
 
 3. **Operations**
    - [Deployment](../05-systems/stealthflow-observability/operations/deployment.md)
    - [Monitoring](../05-systems/stealthflow-observability/operations/monitoring.md)
    - [Accessing Internal Services](../05-systems/stealthflow-observability/operations/accessing-internal-services.md)
-   - [Cloudflare Origin Cert](../05-systems/stealthflow-observability/operations/cloudflare-origin-cert.md)
-
-4. **Runbooks**
    - [Troubleshooting](../05-systems/stealthflow-observability/runbooks/troubleshooting.md)
 
-5. **Architecture Decisions**
-   - [ADR Index](../02-architecture/decisions/)
+4. **Security**
+   - [Security Practices](../05-systems/stealthflow-observability/security.md)
 
-6. **Guides**
+5. **Guides**
    - [Local Setup](../07-guides/onboarding/local-setup.md)
    - [User Guide](../07-guides/usage/user-guide.md)
    - [Client Integration](../07-guides/usage/client-integration.md)
+
+6. **Architecture Decisions**
+   - [ADR Index](../02-architecture/decisions/)
 
 ### Standards Reference
 - [API Standard](../../master/03-technical/standards/api-standard.md) - Reference

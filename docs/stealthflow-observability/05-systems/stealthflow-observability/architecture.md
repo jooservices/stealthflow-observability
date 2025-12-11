@@ -25,340 +25,91 @@ compliance:
 
 # Architecture
 
-Complete architecture documentation for StealthFlow Observability Microservice.
-
----
+StealthFlow Observability ingests structured logs over HTTP, buffers them in Redis Streams, and ships them to Elasticsearch and/or MongoDB via a background worker that applies routing rules.
 
 ## Overview
 
-StealthFlow Observability is a microservice designed to collect, buffer, and store structured logs from the StealthFlow ecosystem. It uses an asynchronous architecture with Redis Streams for buffering and Elasticsearch for storage.
-
----
-
-## High-Level Architecture
-
 ```
-┌─────────────────┐
-│   Application   │
-│     Services    │
-└────────┬────────┘
-         │
-         │ HTTP POST /api/v1/logs
-         ▼
-┌─────────────────┐
-│   API Server    │
-│  (Express.js)   │
-└────────┬────────┘
-         │
-         │ Redis Stream (async)
-         ▼
-┌─────────────────┐
-│  Redis Stream   │
-│  (logs:stream)  │
-└────────┬────────┘
-         │
-         │ Consumer Group
-         ▼
-┌─────────────────┐
-│   LogWorker     │
-│ (Background)    │
-└────────┬────────┘
-         │
-         │ Bulk API
-         ▼
-┌─────────────────┐
-│ Elasticsearch   │
-│  (Indexing)     │
-└────────┬────────┘
-         │
-         │ Query API
-         ▼
-┌─────────────────┐
-│     Kibana      │
-│ (Visualization) │
-└─────────────────┘
+Application → API (Express, auth + rate limit) → Redis Stream (logs:stream)
+           → Log Worker (routing rules) → Elasticsearch (LOG_INDEX_ALIAS or profile prefix)
+                                         → MongoDB (when profile requires)
+                                         → Kibana (5601) for search/visualization
 ```
 
----
+## ASCII Flow
 
-## Components
+```
+                  +--------------------+
+                  |  Client Services   |
+                  | (apps, workers)    |
+                  +---------+----------+
+                            |
+                            | HTTP POST /api/v1/logs (X-API-Key)
+                            v
+                  +--------------------+
+                  |   API (Express)    |
+                  | auth + rate limit  |
+                  +---------+----------+
+                            |
+                            | XADD logs:stream (Redis)
+                            v
+                  +--------------------+
+                  |   Redis Stream     |
+                  |   logs:stream      |
+                  +---------+----------+
+                            |
+                            | XREADGROUP (batch, consumer group)
+                            v
+                  +--------------------+
+                  |    Log Worker      |
+                  | routing profiles   |
+                  +-----+------+-------+
+                        |      |
+                        |      |
+         bulk index     |      | direct write
+         to ES          |      | to Mongo (profiles)
+                        |      |
+              v---------+      +---------v
+          +----------------+  +----------------+
+          | Elasticsearch  |  |   MongoDB     |
+          |  index alias   |  | (profile col) |
+          +--------+-------+  +--------+------+
+                   |                   |
+                   | search/visualize  |
+                   v                   |
+          +----------------+           |
+          |    Kibana      |<----------+
+          +----------------+
+```
 
-### 1. API Server
-
-**Location:** `src/api/server.js`
-
-**Responsibilities:**
-- Receives log submissions via REST API
-- Validates log entries
-- Writes to Redis Stream (async, non-blocking)
-- Provides health check endpoints
-- Handles fallback logging when Redis fails
-
-**Key Features:**
-- Express.js REST API
-- JSON request/response
-- Async log submission (non-blocking)
-- Health monitoring
-- Error handling
-
-### 2. Redis Stream
-
-**Stream Name:** `logs:stream`
-
-**Purpose:**
-- Message queue buffer
-- Handles backpressure
-- Enables async processing
-- Consumer group pattern for scaling
-
-**Configuration:**
-- Consumer group: `stealthflow-log-workers`
-- Message format: `{ id: "...", data: "JSON string" }`
-
-### 3. LogWorker
-
-**Location:** `src/workers/log-worker.js`
-
-**Responsibilities:**
-- Consumes logs from Redis Stream
-- Batch processes logs (200 per batch)
-- Writes to Elasticsearch via Bulk API
-- Handles errors and DLQ
-- Acknowledges processed messages
-
-**Key Features:**
-- Consumer group pattern
-- Batch processing
-- Error handling
-- Dead Letter Queue (DLQ)
-- Graceful shutdown
-
-### 4. Elasticsearch
-
-**Index Alias:** `stealthflow_develop_logs`
-
-**Purpose:**
-- Log storage
-- Full-text search
-- Analytics and aggregation
-- Dynamic mapping
-
-### 5. Kibana
-
-**URL:** Configure via your infrastructure setup (default port 5602)
-
-**Purpose:**
-- Log visualization
-- Dashboards
-- Query interface
-- Analytics
-
----
+### Components
+- **API Server** (`src/api/server.js`): Express app with JSON parsing, API key auth (`X-API-Key`), rate limiting, metrics (`/metrics`), and health endpoints (`/health`, `/health/detailed`). Submits logs to Redis Streams with file-based fallback when Redis is down.
+- **Redis Stream** (`LOG_STREAM_NAME`, default `logs:stream`): Buffer that decouples ingestion from storage; consumer group `LOG_CONSUMER_GROUP` (default `stealthflow-log-workers`).
+- **Log Worker** (`src/workers/log-worker.js`): Consumer that batches stream messages (default 200), resolves storage profiles from `src/config/routingRules.js`, and writes to Elasticsearch and/or MongoDB. Failed/parsing items are moved to DLQ `logs:failed`.
+- **Routing Profiles** (`src/config/storageProfiles.js`, `src/config/routingRules.js`, `src/config/routing.js`): Map log kind/category/level → storage profile. Profiles define destinations, TTL hints, and index prefixes/collections.
+- **Storage**: Elasticsearch bulk indexing using `LOG_INDEX_ALIAS` (or profile prefixes + date suffix). MongoDB collections when a profile lists `mongodb`.
+- **Fallback Logger** (`src/infrastructure/logging/FallbackLogger.js`): Writes logs to files under `FALLBACK_LOG_DIR` when Redis is unavailable.
+- **Kibana**: Port `5601` in `docker-compose.yml` for searching indexed logs.
 
 ## Data Flow
-
-### Log Submission Flow
-
-1. **Application** sends log via HTTP POST to `/api/v1/logs`
-2. **API Server** validates and builds log entry
-3. **API Server** writes to Redis Stream (async, non-blocking)
-4. **API Server** returns 202 Accepted immediately
-5. **LogWorker** consumes from Redis Stream (separate process)
-6. **LogWorker** batches logs (200 per batch)
-7. **LogWorker** writes to Elasticsearch via Bulk API
-8. **LogWorker** acknowledges messages
-9. **Logs** available in Kibana for querying
-
-### Error Handling Flow
-
-1. If Redis fails → Fallback to file logging (`logs/fallback/`)
-2. If Elasticsearch fails → Message goes to DLQ (`logs:failed`)
-3. If parsing fails → Message goes to DLQ
-4. Failed messages can be retried manually
-
----
-
-## Design Patterns
-
-### 1. Producer-Consumer Pattern
-
-- **Producer:** API Server (writes to Redis Stream)
-- **Consumer:** LogWorker (reads from Redis Stream)
-- **Queue:** Redis Stream
-
-### 2. Consumer Group Pattern
-
-- Multiple LogWorkers can run in parallel
-- Each worker processes different messages
-- Load balancing across workers
-- Scalable architecture
-
-### 3. Batch Processing
-
-- Logs processed in batches (200 per batch)
-- Reduces Elasticsearch write overhead
-- Improves throughput
-- Configurable batch size
-
-### 4. Fallback Pattern
-
-- Primary: Redis Stream
-- Fallback: File logging
-- Ensures no logs are lost
-
----
-
-## Scalability
-
-### Horizontal Scaling
-
-**LogWorker Scaling:**
-```bash
-docker-compose up -d --scale log-worker=3
-```
-
-Multiple LogWorkers:
-- Process logs in parallel
-- Share workload via consumer group
-- Increase throughput
-
-### Vertical Scaling
-
-**Increase Batch Size:**
-```yaml
-environment:
-  LOG_BATCH_SIZE: 500  # Default: 200
-```
-
-Larger batches:
-- More logs per Elasticsearch write
-- Higher throughput
-- More memory usage
-
----
-
-## Resilience
-
-### 1. Redis Failure
-
-- Fallback to file logging
-- Logs saved to `logs/fallback/`
-- Can be replayed later
-- Service continues operating
-
-### 2. Elasticsearch Failure
-
-- Messages go to DLQ
-- Not lost, can be retried
-- LogWorker continues processing other messages
-
-### 3. LogWorker Failure
-
-- Messages remain in Redis Stream
-- New LogWorker picks up where left off
-- No message loss
-
----
-
-## Performance Considerations
-
-### Async Processing
-
-- API Server doesn't wait for Elasticsearch write
-- Returns immediately after Redis write
-- Non-blocking architecture
-
-### Batch Processing
-
-- Reduces Elasticsearch write overhead
-- Improves throughput
-- Configurable batch size
-
-### Connection Pooling
-
-- Redis: Connection pool via ioredis
-- Elasticsearch: Connection pool via @elastic/elasticsearch
-- Reuse connections
-
----
-
-## Security
-
-### Network Isolation
-
-- Internal network only
-- No authentication required (internal service)
-- Firewall rules restrict access
-
-### Data Protection
-
-- No sensitive data in logs
-- Input validation
-- Error sanitization
-
----
-
-## Infrastructure
-
-### Infrastructure Services (Shared)
-
-- **Redis:** Configure via REDIS_HOST and REDIS_PORT (default port 6380)
-- **Elasticsearch:** Configure via ELASTICSEARCH_URL (default port 9201)
-- **MongoDB:** Configure via MONGODB_URI (default port 27018, optional)
-- **Kibana:** Configure via your infrastructure setup (default port 5602)
-
-### Observability Service (This Microservice)
-
-- **Observability API:** Port 3100 (configurable via PORT env var)
-- **LogWorker:** Background process
-
----
-
-## Monitoring
-
-### Health Checks
-
-- `/health` - Basic health check
-- `/health/detailed` - Detailed diagnostics
-
-### Key Metrics
-
-- Redis Stream depth
-- DLQ depth
-- LogWorker processing rate
-- API response time
-- Error rate
-
-**For monitoring details, see [operations/monitoring.md](../operations/monitoring.md)**
-
----
-
-## Future Improvements
-
-### Potential Enhancements
-
-1. **Prometheus Metrics**
-   - Expose `/metrics` endpoint
-   - Integration with Grafana
-
-2. **Authentication**
-   - API key authentication
-   - Rate limiting
-
-3. **Index Lifecycle Management**
-   - Automatic log rotation
-   - Retention policies
-
-4. **Alerting**
-   - Stream depth alerts
-   - Error rate alerts
-
----
+1. Client sends `POST /api/v1/logs` (or `/batch`) with schema v1 or legacy payload.
+2. API validates payload, enforces rate limits/auth, and appends to Redis stream.
+3. Worker reads from the consumer group, batches records, resolves storage profile, and writes to the configured destinations.
+4. Successful messages are acknowledged; parse/index failures are sent to the DLQ stream (`logs:failed`).
+5. Indexed logs are queryable via Kibana using `LOG_INDEX_ALIAS` or per-profile index prefixes.
+
+## Resilience & Observability
+- **Fallback**: If Redis is unavailable, the API writes to `FALLBACK_LOG_DIR` and returns `500`.
+- **DLQ**: Bad records are pushed to `logs:failed` for inspection/replay.
+- **Health**: `/health` (summary) and `/health/detailed` (Redis/ES stats, stream lengths, process metrics).
+- **Metrics**: Prometheus metrics at `/metrics` (auth successes/failures, rate-limit hits, request counts/durations).
+
+## Infrastructure Notes
+- **Ports**: API listens on `PORT` (default `3000`; mapped to host `3100` in `docker-compose.yml`). Kibana is exposed on `5601`. Redis/Elasticsearch/MongoDB are internal to the compose network.
+- **Environment**: Key settings in `.env` — `API_KEYS`, `LOG_STREAM_NAME`, `LOG_CONSUMER_GROUP`, `LOG_BATCH_SIZE`, `LOG_INDEX_ALIAS`, `FALLBACK_LOG_DIR`, rate-limit env vars.
+- **Scaling**: Increase workers with `docker-compose up -d --scale log-worker=N`. Tune batch size with `LOG_BATCH_SIZE`.
 
 ## See Also
-
-- [Setup Guide](setup.md) - Development setup
-- [Contributing Guide](contributing.md) - How to contribute
-- [API Reference](../api/reference.md) - API documentation
-- [Monitoring Guide](../operations/monitoring.md) - Monitoring
-
+- API contract: `../api/endpoints.md`
+- Setup: `../../07-guides/onboarding/local-setup.md`
+- Security: `./security.md`

@@ -19,86 +19,52 @@ ai_semantics:
 
 ## Quick Start
 
-### Submit a Log
-```javascript
-import { logAction, CATEGORY } from './shared/logging/actionLogger.js';
-
-await logAction(
-  CATEGORY.SYSTEM,
-  'my_operation',
-  { data: 'my data' },
-  { serviceName: 'MyService' }
-);
+### Submit a log (schema v1)
+```bash
+curl -X POST http://localhost:3100/api/v1/logs \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" \
+  -d '{
+    "schema_version": 1,
+    "level": "INFO",
+    "service": "checkout-api",
+    "environment": "staging",
+    "kind": "BUSINESS",
+    "category": "orders.checkout",
+    "event": "payment_authorized",
+    "message": "Payment authorized",
+    "context": { "workflowId": "wf-123", "requestId": "req-42" },
+    "payload": { "orderId": "ORD-001", "amount": 49.99 }
+  }'
 ```
 
-### View Logs
-1. Open Kibana: http://192.168.1.13:5602
-2. Search: `operation: "my_operation"`
-
-## API Reference
-
-### Categories
-- `CRAWL`, `DOWNLOAD`, `AUTH`, `STATE`, `BROWSER`
-- `CONFIG`, `PERFORMANCE`, `SECURITY`, `SYSTEM`, `WORKFLOW`
-
-### Correlation IDs
-```javascript
-const workflowId = generateWorkflowId();
-
-// Use in all related logs
-await logAction(CATEGORY.AUTH, 'step1', {}, { workflowId, serviceName: 'MyService' });
-await logAction(CATEGORY.AUTH, 'step2', {}, { workflowId, serviceName: 'MyService' });
-
-// Query in Kibana: workflowId: "wf-..."
+### Batch submit
+```bash
+curl -X POST http://localhost:3100/api/v1/logs/batch \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: $API_KEY" \
+  -d '[{ "schema_version": 1, "level": "INFO", "service": "svc", "environment": "dev", "kind": "SYSTEM", "category": "deploy", "event": "started", "message": "Deployment started" }]'
 ```
 
-### Error Logging
-```javascript
-try {
-  await operation();
-} catch (error) {
-  await logError(error, {
-    category: CATEGORY.SYSTEM,
-    operation: 'operation_failed',
-    serviceName: 'MyService'
-  });
-}
+## Schema essentials
+- Required: `schema_version`, `log_id` (auto-generated if omitted), `timestamp` (auto-generated), `level`, `service`, `environment`, `kind`, `category`, `event`, `message`.
+- Optional: `trace` (trace/span IDs), `context` (metadata such as workflowId/requestId/user), `payload` (business payload), `host`, `tags`, `extra`, `tenant_id`.
+- Legacy payloads `{ category, operation, metadata, options }` are still accepted and normalized internally.
+
+## Best practices
+- Use correlation IDs (`workflowId`, `requestId`) in `context` to stitch multi-step flows.
+- Keep `category` stable and use `event` for specific actions; avoid generic names like `"doWork"`.
+- Capture durations in `payload` (e.g., `{ "durationMs": 132 }`) instead of free text.
+- Never log secrets, API keys, tokens, passwords, or full PII.
+
+## Querying in Kibana (default http://localhost:5601)
 ```
-
-## Best Practices
-
-✅ **DO:**
-- Use correlation IDs (workflowId, requestId)
-- Log start and end of operations
-- Include duration: `{ durationMs: Date.now() - start }`
-- Use appropriate categories
-
-❌ **DON'T:**
-- Log passwords, API keys, credit cards
-- Log excessively (every loop)
-- Use generic operation names
-
-## Querying in Kibana
-
-```
-# By operation
-operation: "user_login"
-
-# By service
-serviceName: "AuthService"
-
-# By workflow
-workflowId: "wf-123"
-
-# Errors only
-level: "error"
-
-# Combined
-category: "AUTH" AND level: "error"
+event: "payment_authorized" AND service: "checkout-api"
+context.workflowId: "wf-123"
+kind: "BUSINESS" AND level: "ERROR"
 ```
 
 ## Support
-
-- Health: http://192.168.1.13:3100/health
-- Metrics: http://192.168.1.13:3100/metrics
-- Kibana: http://192.168.1.13:5602
+- Health: http://localhost:3100/health
+- Metrics: http://localhost:3100/metrics
+- Kibana: http://localhost:5601

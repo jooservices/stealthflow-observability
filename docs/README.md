@@ -43,10 +43,13 @@ ai_semantics:
 - [System Overview](stealthflow-observability/05-systems/stealthflow-observability/README.md)
 - [Architecture](stealthflow-observability/05-systems/stealthflow-observability/architecture.md)
 - [API Documentation](stealthflow-observability/05-systems/stealthflow-observability/api/endpoints.md)
-- [Deployment Guide](stealthflow-observability/05-systems/stealthflow-observability/operations/deployment.md)
+- [Deployment](stealthflow-observability/05-systems/stealthflow-observability/operations/deployment.md)
 - [Monitoring](stealthflow-observability/05-systems/stealthflow-observability/operations/monitoring.md)
 - [Troubleshooting](stealthflow-observability/05-systems/stealthflow-observability/runbooks/troubleshooting.md)
 - [Architecture Decisions](stealthflow-observability/02-architecture/decisions/)
+- [Local Setup](stealthflow-observability/07-guides/onboarding/local-setup.md)
+- [User Guide](stealthflow-observability/07-guides/usage/user-guide.md)
+- [Client Integration](stealthflow-observability/07-guides/usage/client-integration.md)
 
 ### Standards (Reference Only)
 - [API Standard](master/03-technical/standards/api-standard.md)
@@ -60,10 +63,10 @@ ai_semantics:
 - `00-index/` - Navigation and discovery hub
 - `02-architecture/decisions/` - Architecture Decision Records (ADRs)
 - `05-systems/stealthflow-observability/` - System documentation
-  - `api/` - API endpoints, payloads, error handling
-  - `operations/` - Deployment, monitoring, scaling
-  - `runbooks/` - Troubleshooting guides
-  - `workflows/` - Workflow documentation
+  - `api/` - API endpoints and payloads
+  - `operations/` - Deployment, monitoring, and infrastructure access
+  - `runbooks/` - Troubleshooting
+  - `security.md` - Security practices
 - `07-guides/` - User-facing guides
   - `onboarding/` - Setup and installation
   - `usage/` - How to use the service
